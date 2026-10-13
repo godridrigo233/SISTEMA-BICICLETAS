@@ -1,0 +1,33 @@
+name: Respaldo Diario de Supabase
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Instalar cliente de PostgreSQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Generar marca de tiempo
+        id: date
+        run: echo "FECHA=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_ENV
+
+      - name: Extraer base de datos (pg_dump)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          pg_dump "$SUPABASE_DB_URL" > respaldo_ucsm_${{ env.FECHA }}.sql
+
+      - name: Guardar respaldo como Artefacto en GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.FECHA }}
+          path: respaldo_ucsm_${{ env.FECHA }}.sql
+          retention-days: 30
