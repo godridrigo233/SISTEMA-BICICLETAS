@@ -1,4 +1,7 @@
+using Bicicletas.Application.Autenticacion;
 using Bicicletas.Infrastructure.Persistencia;
+using Bicicletas.Infrastructure.Persistencia.Repositorios;
+using Bicicletas.Infrastructure.Seguridad;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +20,9 @@ public static class DependencyInjection
                 ?? throw new InvalidOperationException("Falta la variable de entorno ConnectionStrings__Principal.");
             opciones.UseNpgsql(cadena);
         });
+
+        services.AddSingleton<IHasherContrasenas, HasherBCrypt>();
+        services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
         return services;
     }
 }

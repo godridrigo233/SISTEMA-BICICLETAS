@@ -31,6 +31,9 @@ public sealed class Usuario
         DebeCambiarPassword = false;
     }
 
+    /// <summary>Inactivación lógica de la cuenta desde W7 (no existe eliminación física).</summary>
+    public void Desactivar() => Activo = false;
+
     /// <summary>Actualiza el hash sin cambiar el estado (p. ej., al elevar el costo de BCrypt).</summary>
     public void ActualizarHash(string nuevoHash) => PasswordHash = nuevoHash;
 }
