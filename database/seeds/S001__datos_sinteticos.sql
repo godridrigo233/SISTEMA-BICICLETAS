@@ -6,8 +6,8 @@ INSERT INTO usuarios (id_usuario, id_rol, correo_institucional, password_hash, d
   ('00000000-0000-4000-8000-000000000001', 2, 'seed.garita1@ucsm.edu.pe',   :clave_hash, false),
   ('00000000-0000-4000-8000-000000000002', 3, 'seed.supervisor@ucsm.edu.pe', :clave_hash, false),
   ('00000000-0000-4000-8000-000000000003', 4, 'seed.admin@ucsm.edu.pe',      :clave_hash, false),
-  ('00000000-0000-4000-8000-000000000011', 1, 'seed.alumno1@ucsm.edu.pe',    :clave_hash, false),
-  ('00000000-0000-4000-8000-000000000012', 1, 'seed.alumno2@ucsm.edu.pe',    :clave_hash, false);
+  ('00000000-0000-4000-8000-000000000011', 1, 'seed.alumno1@estudiante.ucsm.edu.pe',    :clave_hash, false),
+  ('00000000-0000-4000-8000-000000000012', 1, 'seed.alumno2@estudiante.ucsm.edu.pe',    :clave_hash, false);
 
 INSERT INTO estudiantes (id_estudiante, codigo_universitario, dni, nombres, apellidos, facultad) VALUES
   ('00000000-0000-4000-8000-000000000011', '0000000001', '00000001', 'ALUMNO UNO', 'PRUEBA UNO', 'Facultad de Prueba'),
