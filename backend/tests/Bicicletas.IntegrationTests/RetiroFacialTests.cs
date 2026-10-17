@@ -31,7 +31,7 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         return await db.Database.SqlQuery<T>(sql).SingleAsync();
     }
 
-    private async Task<Resultado> RetirarAsync(Guid idBicicleta, double[] descriptor, HttpStatusCode esperado = HttpStatusCode.OK)
+    private async Task<RespuestaRetiro> RetirarAsync(Guid idBicicleta, double[] descriptor, HttpStatusCode esperado = HttpStatusCode.OK)
     {
         var (cliente, token) = await SesionGaritaAsync();
         using (cliente)
@@ -39,7 +39,7 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
             using var solicitud = AutenticacionTests.Solicitud(Ruta.ToString(), token, new { idBicicleta, descriptorCapturado = descriptor, latenciaMs = 900 });
             using HttpResponseMessage respuesta = await cliente.SendAsync(solicitud);
             Assert.True(respuesta.StatusCode == esperado, await respuesta.Content.ReadAsStringAsync());
-            return esperado == HttpStatusCode.OK ? (await respuesta.Content.ReadFromJsonAsync<Resultado>())! : new Resultado("", "", 0, 0);
+            return esperado == HttpStatusCode.OK ? (await respuesta.Content.ReadFromJsonAsync<RespuestaRetiro>())! : new RespuestaRetiro("", "", 0, 0);
         }
     }
 
@@ -49,7 +49,7 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         var bici = await DatosGarita.CrearBicicletaAsync(fabrica, "DENTRO");
         await DatosGarita.EnrolarAsync(fabrica, bici.IdEstudiante, Vector());
 
-        Resultado r = await RetirarAsync(bici.IdBicicleta, Vector(0.01));   // d = √(128·0.0001) ≈ 0.113
+        RespuestaRetiro r = await RetirarAsync(bici.IdBicicleta, Vector(0.01));   // d = √(128·0.0001) ≈ 0.113
 
         Assert.Equal("AUTORIZADO", r.Resultado);
         Assert.Equal("FUERA", r.EstadoActualizado);
@@ -65,7 +65,7 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         double[] referencia = Vector();
         await DatosGarita.EnrolarAsync(fabrica, bici.IdEstudiante, referencia);
 
-        Resultado r = await RetirarAsync(bici.IdBicicleta, Vector(0.1));   // d ≈ 1.13 > θ
+        RespuestaRetiro r = await RetirarAsync(bici.IdBicicleta, Vector(0.1));   // d ≈ 1.13 > θ
 
         Assert.Equal("DENEGADO", r.Resultado);
         Assert.Equal("DENTRO", await ConsultarAsync<string>($"SELECT estado AS \"Value\" FROM bicicletas WHERE id_bicicleta = {bici.IdBicicleta}"));
@@ -91,5 +91,5 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         await RetirarAsync(sinEnrolar.IdBicicleta, Vector(), HttpStatusCode.Conflict);
     }
 
-    internal sealed record Resultado(string Resultado, string EstadoActualizado, double DistanciaEuclidiana, double UmbralTheta);
+    internal sealed record RespuestaRetiro(string Resultado, string EstadoActualizado, double DistanciaEuclidiana, double UmbralTheta);
 }
