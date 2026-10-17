@@ -43,10 +43,14 @@ describe('W1 · LoginPage', () => {
     await usuario.type(screen.getByLabelText('Correo institucional'), 'alguien@gmail.com');
     await usuario.type(screen.getByLabelText('Contraseña'), 'Clave2026xx');
     expect(boton).toBeDisabled();
-    expect(screen.getByText('Use su correo @ucsm.edu.pe.')).toBeInTheDocument();
+    expect(screen.getByText('Use su correo @ucsm.edu.pe o @estudiante.ucsm.edu.pe.')).toBeInTheDocument();
 
     await usuario.clear(screen.getByLabelText('Correo institucional'));
     await usuario.type(screen.getByLabelText('Correo institucional'), 'vigilante01@ucsm.edu.pe');
+    expect(boton).toBeEnabled();
+
+    await usuario.clear(screen.getByLabelText('Correo institucional'));
+    await usuario.type(screen.getByLabelText('Correo institucional'), 'alumno01@estudiante.ucsm.edu.pe');
     expect(boton).toBeEnabled();
   });
 

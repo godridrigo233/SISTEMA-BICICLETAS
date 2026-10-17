@@ -1,4 +1,5 @@
 using Bicicletas.Application.Autenticacion;
+using Bicicletas.Application.Garita;
 using Bicicletas.Infrastructure.Persistencia;
 using Bicicletas.Infrastructure.Persistencia.Repositorios;
 using Bicicletas.Infrastructure.Seguridad;
@@ -24,6 +25,9 @@ public static class DependencyInjection
         services.AddSingleton<IHasherContrasenas, HasherBCrypt>();
         services.AddSingleton<IControlIntentos, ControlIntentosMemoria>();
         services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
+        services.AddScoped<IBicicletaRepositorio, BicicletaRepositorio>();
+        services.AddScoped<IAuditoriaRepositorio, AuditoriaRepositorio>();
+        services.AddScoped<IUnidadDeTrabajo, UnidadDeTrabajo>();
         return services;
     }
 }

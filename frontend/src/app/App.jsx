@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import CambiarPasswordPage from '../features/auth/CambiarPasswordPage';
 import LoginPage from '../features/auth/LoginPage';
+import PanelGarita from '../features/garita/PanelGarita';
 import { SesionProvider } from '../features/auth/SesionContext';
 import Plantilla from './Plantilla';
 import ProtectedRoute from './ProtectedRoute';
@@ -23,7 +24,7 @@ export default function App() {
               <Route path="/estudiante/historial" element={<Pendiente nombre="W5 · Historial" />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.GARITERO, ROL.SUPERVISOR, ROL.ADMINISTRADOR]} />}>
-              <Route path="/garita/control-acceso" element={<Pendiente nombre="W2 · Panel Central de Garita" />} />
+              <Route path="/garita/control-acceso" element={<PanelGarita />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.SUPERVISOR, ROL.ADMINISTRADOR]} />}>
               <Route path="/supervisor/contingencias" element={<Pendiente nombre="W3 · Consola de Regularización" />} />

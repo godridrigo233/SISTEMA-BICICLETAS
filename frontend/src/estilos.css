@@ -34,3 +34,13 @@ body { margin: 0; }
 .barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 24px; background: var(--verde-ucsm); color: #fff; flex-wrap: wrap; }
 .barra .boton { border-color: #fff; }
 main.contenido { padding: 24px; }
+.garita { display: flex; flex-direction: column; gap: 20px; max-width: 960px; }
+.ficha { background: #fff; border: 1px solid var(--gris-borde); border-radius: 8px; padding: 16px 20px; }
+.ficha h2 { margin-top: 0; }
+.ficha dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; }
+.ficha dt { font-weight: 600; }
+.ficha dd { margin: 0; }
+.exito { border-left: 4px solid var(--verde-ucsm); background: #e6f4ec; padding: 10px 12px; border-radius: 4px; }
+.tabla { border-collapse: collapse; width: 100%; background: #fff; }
+.tabla th, .tabla td { border: 1px solid var(--gris-borde); padding: 8px 10px; text-align: left; }
+.tabla th { background: #e9ecea; }
