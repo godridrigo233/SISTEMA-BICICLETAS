@@ -9,6 +9,8 @@ public sealed class FabricaApi : WebApplicationFactory<Program>
 {
     public static string? CadenaPruebas => Environment.GetEnvironmentVariable("ConnectionStrings__Pruebas");
 
+    public const string OrigenPermitidoPruebas = "https://bicicletas-ucsm.vercel.app";
+
     public const string ClaveFirmaPruebas = "clave-de-firma-solo-para-pruebas-de-integracion-0123456789";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -21,6 +23,7 @@ public sealed class FabricaApi : WebApplicationFactory<Program>
                 ["ConnectionStrings:Principal"] = CadenaPruebas,
                 ["Jwt:ClaveFirma"] = ClaveFirmaPruebas,
                 ["Jwt:Emisor"] = "bicicletas-ucsm-pruebas",
+                ["Cors:OrigenPermitido"] = OrigenPermitidoPruebas,
             }));
     }
 }
