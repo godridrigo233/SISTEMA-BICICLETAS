@@ -44,3 +44,6 @@ main.contenido { padding: 24px; }
 .tabla { border-collapse: collapse; width: 100%; background: #fff; }
 .tabla th, .tabla td { border: 1px solid var(--gris-borde); padding: 8px 10px; text-align: left; }
 .tabla th { background: #e9ecea; }
+.camara video { width: 100%; max-width: 480px; border-radius: 8px; background: #1b1b1b; display: block; }
+.medidor-barra { height: 12px; background: #e3e7e5; border-radius: 6px; overflow: hidden; max-width: 480px; }
+.medidor-barra span { display: block; height: 100%; background: var(--verde-ucsm); }
