@@ -47,3 +47,5 @@ main.contenido { padding: 24px; }
 .camara video { width: 100%; max-width: 480px; border-radius: 8px; background: #1b1b1b; display: block; }
 .medidor-barra { height: 12px; background: #e3e7e5; border-radius: 6px; overflow: hidden; max-width: 480px; }
 .medidor-barra span { display: block; height: 100%; background: var(--verde-ucsm); }
+.selector { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: 1rem; }
+.menu { display: flex; gap: 8px; flex-wrap: wrap; } .menu a { color: #fff; text-decoration: none; padding: 6px 12px; border: 1px solid rgb(255 255 255 / 50%); border-radius: 6px; } .menu a.active { background: #fff; color: var(--verde-ucsm); font-weight: 600; }

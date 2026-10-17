@@ -43,4 +43,21 @@ public static class DatosGarita
             VALUES ({idEstudiante}, {vector}, 'face-api-0.22.2');
             """);
     }
+
+    /// <summary>Crea una cuenta de estudiante con contraseña conocida y su fila en el padrón.</summary>
+    public static async Task<(string Correo, Guid IdEstudiante)> CrearEstudianteConCuentaAsync(FabricaApi fabrica)
+    {
+        ArgumentNullException.ThrowIfNull(fabrica);
+        string correo = await UsuariosPrueba.CrearAsync(fabrica, Domain.Usuarios.RolSistema.Estudiante);
+        using IServiceScope ambito = fabrica.Services.CreateScope();
+        AppDbContext db = ambito.ServiceProvider.GetRequiredService<AppDbContext>();
+        Guid id = await db.Usuarios.Where(u => u.CorreoInstitucional == correo).Select(u => u.IdUsuario).SingleAsync();
+        string dni = Random.Shared.Next(10_000_000, 99_999_999).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string codigo = "8" + Random.Shared.NextInt64(100_000_000, 999_999_999).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO estudiantes (id_estudiante, codigo_universitario, dni, nombres, apellidos, facultad)
+            VALUES ({id}, {codigo}, {dni}, 'JUAN', 'PEREZ RAMOS', 'Ingeniería de Sistemas');
+            """);
+        return (correo, id);
+    }
 }

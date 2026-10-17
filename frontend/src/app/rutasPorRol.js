@@ -14,3 +14,11 @@ export const NOMBRE_ROL = Object.freeze({
   [ROL.SUPERVISOR]: 'Supervisor',
   [ROL.ADMINISTRADOR]: 'Administrador',
 });
+
+// Menú de la barra superior por rol (P07, mapa de navegación). El Garitero solo opera la Garita.
+export const MENU_POR_ROL = Object.freeze({
+  [ROL.ESTUDIANTE]: [['/estudiante/historial', 'Mi historial'], ['/estudiante/registro', 'Mi registro']],
+  [ROL.GARITERO]: [],
+  [ROL.SUPERVISOR]: [['/garita/control-acceso', 'Garita'], ['/supervisor/contingencias', 'Contingencias'], ['/gestion/monitoreo', 'Monitoreo']],
+  [ROL.ADMINISTRADOR]: [['/gestion/monitoreo', 'Monitoreo'], ['/admin/usuarios', 'Usuarios'], ['/garita/control-acceso', 'Garita'], ['/supervisor/contingencias', 'Contingencias']],
+});

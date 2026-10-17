@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import CambiarPasswordPage from '../features/auth/CambiarPasswordPage';
 import LoginPage from '../features/auth/LoginPage';
 import PanelGarita from '../features/garita/PanelGarita';
+import RegistroEnrolamiento from '../features/enrolamiento/RegistroEnrolamiento';
 import { SesionProvider } from '../features/auth/SesionContext';
 import Plantilla from './Plantilla';
 import ProtectedRoute from './ProtectedRoute';
@@ -20,7 +21,7 @@ export default function App() {
           <Route path="/cambiar-password" element={<CambiarPasswordPage />} />
           <Route element={<Plantilla />}>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.ESTUDIANTE]} />}>
-              <Route path="/estudiante/registro" element={<Pendiente nombre="W4 · Registro y Enrolamiento" />} />
+              <Route path="/estudiante/registro" element={<RegistroEnrolamiento />} />
               <Route path="/estudiante/historial" element={<Pendiente nombre="W5 · Historial" />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.GARITERO, ROL.SUPERVISOR, ROL.ADMINISTRADOR]} />}>
