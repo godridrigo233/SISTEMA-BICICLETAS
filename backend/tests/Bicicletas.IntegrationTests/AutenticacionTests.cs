@@ -43,8 +43,9 @@ public sealed class AutenticacionTests(FabricaApi fabrica) : IClassFixture<Fabri
 
         Assert.Equal(HttpStatusCode.Unauthorized, claveMala.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, correoMalo.StatusCode);
-        Assert.Equal(await Detalle(claveMala), await Detalle(correoMalo));
-        Assert.Equal("Credenciales inválidas.", await Detalle(claveMala));
+        string? detalleClave = await Detalle(claveMala);
+        Assert.Equal(detalleClave, await Detalle(correoMalo));
+        Assert.Equal("Credenciales inválidas.", detalleClave);
     }
 
     [FactConBaseDatos]
