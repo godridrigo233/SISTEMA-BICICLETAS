@@ -1,8 +1,10 @@
 using Bicicletas.Application.Autenticacion;
+using Bicicletas.Application.Contingencias;
 using Bicicletas.Application.Estudiantes;
 using Bicicletas.Application.Garita;
 using Bicicletas.Application.Monitoreo;
 using Bicicletas.Application.Retiros;
+using Bicicletas.Application.Usuarios;
 using Bicicletas.Infrastructure.Persistencia;
 using Bicicletas.Infrastructure.Persistencia.Repositorios;
 using Bicicletas.Infrastructure.Seguridad;
@@ -34,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<IDescriptorRepositorio, DescriptorRepositorio>();
         services.AddScoped<IEstudianteRepositorio, EstudianteRepositorio>();
         services.AddScoped<IMonitoreoRepositorio, MonitoreoRepositorio>();
+        services.AddScoped<IContingenciaRepositorio, ContingenciaRepositorio>();
+        services.AddScoped<IGestionUsuariosRepositorio, GestionUsuariosRepositorio>();
         return services;
     }
 }

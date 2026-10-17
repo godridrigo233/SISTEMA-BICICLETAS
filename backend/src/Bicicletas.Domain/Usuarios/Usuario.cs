@@ -31,6 +31,16 @@ public sealed class Usuario
         DebeCambiarPassword = false;
     }
 
+    /// <summary>Contraseña temporal generada por el Administrador (W7): obliga a crear una propia al ingresar.</summary>
+    public void AsignarPasswordTemporal(string hashTemporal)
+    {
+        PasswordHash = hashTemporal;
+        DebeCambiarPassword = true;
+    }
+
+    /// <summary>Reactivación de una cuenta inactiva desde W7.</summary>
+    public void Activar() => Activo = true;
+
     /// <summary>Inactivación lógica de la cuenta desde W7 (no existe eliminación física).</summary>
     public void Desactivar() => Activo = false;
 
