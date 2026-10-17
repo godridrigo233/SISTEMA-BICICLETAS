@@ -14,7 +14,8 @@ public static class UsuariosPrueba
         bool activo = true, bool debeCambiarPassword = false, string password = PasswordValida)
     {
         ArgumentNullException.ThrowIfNull(fabrica);
-        string correo = $"it.{Guid.NewGuid():N}@ucsm.edu.pe";
+        string dominio = idRol == RolSistema.Estudiante ? "@estudiante.ucsm.edu.pe" : "@ucsm.edu.pe";
+        string correo = $"it.{Guid.NewGuid():N}{dominio}";
         var usuario = new Usuario(Guid.NewGuid(), idRol, correo, new HasherBCrypt().Hashear(password), debeCambiarPassword);
         if (!activo)
             usuario.Desactivar();
