@@ -1,0 +1,36 @@
+/* Identidad visual UCSM (Nielsen H4: consistencia con el Aula Virtual que el usuario ya conoce). */
+:root {
+  --verde-ucsm: #00693e;
+  --verde-oscuro: #004d2d;
+  --gris-texto: #3d3d3d;
+  --gris-borde: #c9c9c9;
+  --rojo-error: #b3261e;
+  --fondo: #f3f5f4;
+  font-family: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--gris-texto);
+  background: var(--fondo);
+}
+body { margin: 0; }
+.pantalla-centrada { min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
+.tarjeta { background: #fff; width: 100%; max-width: 420px; border-radius: 10px; box-shadow: 0 4px 18px rgb(0 0 0 / 12%); overflow: hidden; }
+.tarjeta-encabezado { background: var(--verde-ucsm); color: #fff; padding: 20px 24px; }
+.tarjeta-encabezado h1 { margin: 0; font-size: 1.25rem; }
+.tarjeta-encabezado p { margin: 4px 0 0; font-size: 0.9rem; opacity: 0.9; }
+.tarjeta-cuerpo { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.campo label { display: block; font-weight: 600; margin-bottom: 4px; }
+.campo input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 12px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: 1rem; }
+.campo input:focus { outline: 2px solid var(--verde-ucsm); outline-offset: 1px; }
+.campo input[aria-invalid='true'] { border-color: var(--rojo-error); }
+.con-boton { display: flex; gap: 8px; }
+.ayuda { font-size: 0.85rem; color: #5c5c5c; margin-top: 4px; }
+.error-campo { font-size: 0.85rem; color: var(--rojo-error); margin-top: 4px; }
+.boton { min-height: 44px; padding: 8px 18px; border-radius: 6px; border: 1px solid var(--verde-ucsm); background: #fff; color: var(--verde-ucsm); font-size: 1rem; cursor: pointer; }
+.boton-primario { background: var(--verde-ucsm); color: #fff; font-weight: 600; }
+.boton-primario:hover:not(:disabled) { background: var(--verde-oscuro); }
+.boton:disabled { opacity: 0.55; cursor: not-allowed; }
+.alerta { border-left: 4px solid var(--rojo-error); background: #fdecea; padding: 10px 12px; border-radius: 4px; }
+.aviso { border-left: 4px solid #b26a00; background: #fff4e5; padding: 10px 12px; border-radius: 4px; }
+.enlace { color: var(--verde-ucsm); }
+.barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 24px; background: var(--verde-ucsm); color: #fff; flex-wrap: wrap; }
+.barra .boton { border-color: #fff; }
+main.contenido { padding: 24px; }
