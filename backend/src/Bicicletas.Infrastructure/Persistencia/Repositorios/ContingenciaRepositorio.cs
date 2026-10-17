@@ -25,7 +25,7 @@ public sealed class ContingenciaRepositorio(AppDbContext db) : IContingenciaRepo
         var marcos = codigos.Select(c => c.ToUpperInvariant()).ToList();
         return await (from b in db.Bicicletas.AsNoTracking()
                       join e in db.Estudiantes.AsNoTracking() on b.IdEstudiante equals e.IdEstudiante
-                      where qr.Contains(b.CodigoQr) || marcos.Contains(b.NumeroMarco)
+                      where qr.Contains(b.CodigoQr.ToLower()) || marcos.Contains(b.NumeroMarco.ToUpper())   // sin distinguir mayúsculas
                       select new BicicletaReferencia(b.IdBicicleta, b.CodigoQr, b.NumeroMarco, e.Nombres + " " + e.Apellidos,
                           b.MarcaModelo + " / " + b.Color, b.Estado == EstadoBicicleta.Dentro ? "DENTRO" : "FUERA"))
                      .ToListAsync(ct);
