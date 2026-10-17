@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using Bicicletas.Api.Controllers;
 using Bicicletas.Api.Seguridad;
 using Bicicletas.Domain.Usuarios;
 using Bicicletas.IntegrationTests.Infraestructura;
