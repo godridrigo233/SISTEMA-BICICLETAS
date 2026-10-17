@@ -15,3 +15,9 @@ export async function autorizarRetiro(idBicicleta, descriptorCapturado, latencia
   const { data } = await api.post('/retiros/autorizar', { idBicicleta, descriptorCapturado, latenciaMs });
   return data; // { resultado, estadoActualizado, distanciaEuclidiana, umbralTheta }
 }
+
+/** Derivación al Supervisor: retiro manual verificando el DNI físico del titular (solo Supervisor/Admin). */
+export async function retiroManual(idBicicleta, dniVerificado) {
+  const { data } = await api.post('/retiros/manual', { idBicicleta, dniVerificado });
+  return data; // { resultado: 'AUTORIZADO_MANUAL', estadoActualizado: 'FUERA' }
+}

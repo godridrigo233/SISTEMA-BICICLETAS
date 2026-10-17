@@ -1,3 +1,5 @@
+using Bicicletas.Application.Comun;
+using Bicicletas.Domain.Auditoria;
 using Bicicletas.Domain.Bicicletas;
 using Bicicletas.Domain.Biometria;
 using Bicicletas.Domain.Comun;
@@ -7,6 +9,8 @@ namespace Bicicletas.Application.Estudiantes;
 /// <summary>CU-01: registro de la bicicleta y enrolamiento facial del estudiante (W4).</summary>
 public sealed class EstudianteService(IEstudianteRepositorio repositorio, TimeProvider reloj)
 {
+    private static readonly string[] TiposMovimiento = ["INGRESO", "RETIRO"];
+
     public async Task<PerfilEstudianteResponse> ObtenerPerfilAsync(Guid idEstudiante, CancellationToken ct) =>
         await repositorio.ObtenerPerfilAsync(idEstudiante, ct)
         ?? throw new RecursoNoEncontradoException("La cuenta no está vinculada al padrón de estudiantes.");
@@ -42,5 +46,21 @@ public sealed class EstudianteService(IEstudianteRepositorio repositorio, TimePr
         else
             actual.Actualizar(solicitud.Descriptor, solicitud.VersionModelo, ahora);
         await repositorio.GuardarAsync(ct);
+    }
+
+    /// <summary>W5: el filtro por estudiante lo impone el servidor con el «sub» del JWT (OWASP A01).</summary>
+    public async Task<Pagina<MovimientoHistorialResponse>> ConsultarHistorialAsync(Guid idEstudiante, FiltroMovimientos filtro, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(filtro);
+        var (desde, hasta) = filtro.RangoUtc();
+        TipoEvento? tipo = FiltroMovimientos.Validar(filtro.Tipo, "tipo", TiposMovimiento) switch
+        {
+            "INGRESO" => TipoEvento.Ingreso,
+            "RETIRO" => TipoEvento.Retiro,
+            _ => null,
+        };
+        var (total, elementos) = await repositorio.ConsultarHistorialAsync(idEstudiante, tipo, desde, hasta,
+            (filtro.Pagina - 1) * filtro.Tamano, filtro.Tamano, ct);
+        return new Pagina<MovimientoHistorialResponse>(total, filtro.Pagina, filtro.Tamano, elementos);
     }
 }

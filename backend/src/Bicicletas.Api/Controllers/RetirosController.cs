@@ -9,7 +9,7 @@ namespace Bicicletas.Api.Controllers;
 [ApiController]
 [Route("api/v1/retiros")]
 [Authorize(Policy = Politicas.OperacionGarita)]
-public sealed class RetirosController(AutorizarRetiroService servicio) : ControllerBase
+public sealed class RetirosController(AutorizarRetiroService servicio, RetiroManualService manual) : ControllerBase
 {
     /// <response code="200">Retiro AUTORIZADO o DENEGADO; ambos quedan en auditoria_accesos. No se usa 401
     /// para el rechazo biométrico porque cerraría la sesión del vigilante.</response>
@@ -18,7 +18,18 @@ public sealed class RetirosController(AutorizarRetiroService servicio) : Control
     [HttpPost("autorizar")]
     public async Task<ActionResult<RetiroResponse>> Autorizar(RetiroRequest solicitud, CancellationToken ct)
     {
-        Guid idVigilante = Guid.Parse(User.FindFirst(ClaimsSistema.IdUsuario)!.Value);
-        return Ok(await servicio.EjecutarAsync(solicitud, idVigilante, ct));
+        return Ok(await servicio.EjecutarAsync(solicitud, IdOperador, ct));
     }
+
+    /// <summary>Derivación al Supervisor tras un rechazo biométrico: verifica el DNI físico del titular.</summary>
+    /// <response code="200">Retiro manual autorizado: DENTRO → FUERA, auditado como RETIRO/MANUAL.</response>
+    /// <response code="403">Solo Supervisor o Administrador (el Garitero deriva, no autoriza).</response>
+    /// <response code="409">La bicicleta no figura DENTRO.</response>
+    /// <response code="422">El DNI no coincide con el del titular.</response>
+    [HttpPost("manual")]
+    [Authorize(Policy = Politicas.Regularizacion)]
+    public async Task<ActionResult<RetiroManualResponse>> Manual(RetiroManualRequest solicitud, CancellationToken ct) =>
+        Ok(await manual.EjecutarAsync(solicitud, IdOperador, ct));
+
+    private Guid IdOperador => Guid.Parse(User.FindFirst(ClaimsSistema.IdUsuario)!.Value);
 }

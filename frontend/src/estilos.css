@@ -49,3 +49,13 @@ main.contenido { padding: 24px; }
 .medidor-barra span { display: block; height: 100%; background: var(--verde-ucsm); }
 .selector { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--gris-borde); border-radius: 6px; font-size: 1rem; }
 .menu { display: flex; gap: 8px; flex-wrap: wrap; } .menu a { color: #fff; text-decoration: none; padding: 6px 12px; border: 1px solid rgb(255 255 255 / 50%); border-radius: 6px; } .menu a.active { background: #fff; color: var(--verde-ucsm); font-weight: 600; }
+.encabezado { justify-content: space-between; align-items: center; }
+.filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 12px 0; }
+.filtros .campo { margin: 0; min-width: 150px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin: 12px 0; }
+.kpi { background: #fff; border: 1px solid var(--gris-borde); border-left: 4px solid var(--verde-ucsm); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.kpi strong { font-size: 1.6rem; }
+.tabla-desplazable { overflow-x: auto; }
+.paginador { justify-content: center; align-items: center; margin: 12px 0; }
+.modal-fondo { position: fixed; inset: 0; background: rgb(0 0 0 / 45%); display: grid; place-items: center; padding: 16px; }
+.modal { max-width: 420px; text-align: center; }
