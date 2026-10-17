@@ -48,6 +48,17 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
     });
 builder.Services.AddPoliticasRbac();
 
+// CORS restringido al dominio del frontend en Vercel (OWASP A05): nunca "*".
+// Cors__OrigenPermitido admite varios orígenes separados por coma (p. ej., producción y vista previa).
+builder.Services.AddCors(opciones => opciones.AddDefaultPolicy(politica =>
+{
+    string[] origenes = (builder.Configuration["Cors:OrigenPermitido"] ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    politica.WithOrigins(origenes)
+        .WithHeaders("Authorization", "Content-Type")
+        .WithMethods("GET", "POST", "PUT", "PATCH");
+}));
+
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ManejadorExcepciones>();
 builder.Services.AddControllers();
@@ -55,6 +66,7 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
