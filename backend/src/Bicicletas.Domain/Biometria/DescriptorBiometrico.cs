@@ -14,4 +14,25 @@ public sealed class DescriptorBiometrico
     public DateTime ConsentimientoEn { get; private set; }
 
     private DescriptorBiometrico() { }   // requerido por EF Core
+
+    /// <summary>Primer enrolamiento: requiere el consentimiento informado del titular.</summary>
+    public static DescriptorBiometrico Crear(Guid idEstudiante, double[] vector, string versionModelo, DateTime ahoraUtc) =>
+        new()
+        {
+            IdDescriptor = Guid.NewGuid(),
+            IdEstudiante = idEstudiante,
+            VectorEmbedding = vector,
+            VersionModelo = versionModelo,
+            ActualizadoEn = ahoraUtc,
+            ConsentimientoEn = ahoraUtc,
+        };
+
+    /// <summary>Re-enrolamiento: reemplaza el vector y renueva el consentimiento.</summary>
+    public void Actualizar(double[] vector, string versionModelo, DateTime ahoraUtc)
+    {
+        VectorEmbedding = vector;
+        VersionModelo = versionModelo;
+        ActualizadoEn = ahoraUtc;
+        ConsentimientoEn = ahoraUtc;
+    }
 }

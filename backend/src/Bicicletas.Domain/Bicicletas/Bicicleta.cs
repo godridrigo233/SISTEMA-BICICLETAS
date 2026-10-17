@@ -24,6 +24,16 @@ public sealed class Bicicleta
         Estado = estado;
     }
 
+    /// <summary>CU-01: registro de una bicicleta nueva del estudiante, con su código QR (UUID) y estado FUERA.</summary>
+    public static Bicicleta Registrar(Guid idEstudiante, string numeroMarco, string marcaModelo, string color, string? rasgosDistintivos) =>
+        new(Guid.NewGuid(), idEstudiante, Guid.NewGuid().ToString(), EstadoBicicleta.Fuera)
+        {
+            NumeroMarco = numeroMarco.Trim().ToUpperInvariant(),
+            MarcaModelo = marcaModelo.Trim(),
+            Color = color.Trim(),
+            RasgosDistintivos = string.IsNullOrWhiteSpace(rasgosDistintivos) ? null : rasgosDistintivos.Trim(),
+        };
+
     /// <summary>RF-05: FUERA → DENTRO. Un segundo ingreso es un conflicto (CU-03, flujo 5a).</summary>
     public void RegistrarIngreso()
     {
