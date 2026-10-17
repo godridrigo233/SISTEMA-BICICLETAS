@@ -1,3 +1,5 @@
 * text=auto eol=lf
 *.xlsm binary
 *.bin binary
+*-shard1 binary
+*-shard2 binary
