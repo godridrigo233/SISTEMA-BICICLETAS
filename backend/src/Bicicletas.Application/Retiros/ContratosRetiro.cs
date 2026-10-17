@@ -19,3 +19,13 @@ public interface IDescriptorRepositorio
 {
     Task<double[]?> ObtenerVectorDelTitularAsync(Guid idEstudiante, CancellationToken ct);
 }
+
+/// <summary>
+/// Cuerpo de POST /api/v1/retiros/manual: el Supervisor verifica el DNI físico del titular tras un
+/// rechazo biométrico (CU-04, flujo alternativo «Derivar al supervisor»).
+/// </summary>
+public sealed record RetiroManualRequest(
+    [Required] Guid IdBicicleta,
+    [Required, RegularExpression("^[0-9]{8}$", ErrorMessage = "El DNI debe tener 8 dígitos.")] string DniVerificado);
+
+public sealed record RetiroManualResponse(string Resultado, string EstadoActualizado);

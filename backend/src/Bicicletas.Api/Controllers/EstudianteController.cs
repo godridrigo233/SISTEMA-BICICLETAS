@@ -1,4 +1,5 @@
 using Bicicletas.Api.Seguridad;
+using Bicicletas.Application.Comun;
 using Bicicletas.Application.Estudiantes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,4 +35,10 @@ public sealed class EstudianteController(EstudianteService servicio) : Controlle
         await servicio.EnrolarAsync(IdEstudiante, solicitud, ct);
         return NoContent();
     }
+
+    /// <summary>W5 · Historial de movimientos de las bicicletas propias, paginado y filtrable.</summary>
+    /// <response code="422">Filtro no válido (tipo desconocido o rango de fechas invertido).</response>
+    [HttpGet("historial")]
+    public async Task<ActionResult<Pagina<MovimientoHistorialResponse>>> Historial([FromQuery] FiltroMovimientos filtro, CancellationToken ct) =>
+        Ok(await servicio.ConsultarHistorialAsync(IdEstudiante, filtro, ct));
 }

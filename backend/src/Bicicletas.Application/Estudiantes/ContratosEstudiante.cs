@@ -22,8 +22,15 @@ public sealed record EnrolamientoRequest(
     bool ConsentimientoAceptado,
     [Required, MaxLength(20)] string VersionModelo);
 
+/// <summary>Fila de W5 · Historial personal: solo movimientos de las bicicletas propias.</summary>
+public sealed record MovimientoHistorialResponse(DateTime FechaUtc, string TipoEvento, string Resultado,
+    string Registro, string Bicicleta);
+
 public interface IEstudianteRepositorio
 {
+    Task<(int Total, IReadOnlyList<MovimientoHistorialResponse> Elementos)> ConsultarHistorialAsync(Guid idEstudiante,
+        Domain.Auditoria.TipoEvento? tipo, DateTime? desdeUtc, DateTime? hastaUtc, int saltar, int tomar, CancellationToken ct);
+
     Task<PerfilEstudianteResponse?> ObtenerPerfilAsync(Guid idEstudiante, CancellationToken ct);
 
     Task<bool> ExisteNumeroMarcoAsync(string numeroMarco, CancellationToken ct);

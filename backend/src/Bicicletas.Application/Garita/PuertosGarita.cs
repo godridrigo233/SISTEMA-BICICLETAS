@@ -10,6 +10,9 @@ public interface IBicicletaRepositorio
 
     /// <summary>SELECT … FOR UPDATE: bloquea la fila hasta el COMMIT de la transacción en curso.</summary>
     Task<Bicicleta?> ObtenerConBloqueoAsync(Guid idBicicleta, CancellationToken ct);
+
+    /// <summary>DNI del titular para la verificación manual del Supervisor; no se expone en las respuestas.</summary>
+    Task<string?> ObtenerDniTitularAsync(Guid idEstudiante, CancellationToken ct);
 }
 
 public interface IAuditoriaRepositorio

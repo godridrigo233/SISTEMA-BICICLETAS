@@ -25,4 +25,7 @@ public sealed class BicicletaRepositorio(AppDbContext db) : IBicicletaRepositori
             .ToListAsync(ct);
         return filas.SingleOrDefault();
     }
+
+    public Task<string?> ObtenerDniTitularAsync(Guid idEstudiante, CancellationToken ct) =>
+        db.Estudiantes.AsNoTracking().Where(e => e.IdEstudiante == idEstudiante).Select(e => (string?)e.Dni).SingleOrDefaultAsync(ct);
 }
