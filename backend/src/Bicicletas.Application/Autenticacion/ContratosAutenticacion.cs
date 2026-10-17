@@ -4,8 +4,8 @@ namespace Bicicletas.Application.Autenticacion;
 
 /// <summary>Cuerpo de POST /api/v1/auth/login (W1 Login unificado).</summary>
 public sealed record LoginRequest(
-    [property: Required, EmailAddress, MaxLength(100)] string Correo,
-    [property: Required, MaxLength(128)] string Password);
+    [Required, EmailAddress, MaxLength(100)] string Correo,
+    [Required, MaxLength(128)] string Password);
 
 /// <summary>Respuesta del login: el JWT y los datos mínimos para enrutar por rol en la SPA.</summary>
 public sealed record LoginResponse(string Token, DateTime ExpiraEnUtc, short IdRol, bool DebeCambiarPassword);
