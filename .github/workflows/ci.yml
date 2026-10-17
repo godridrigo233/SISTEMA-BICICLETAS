@@ -127,7 +127,7 @@ jobs:
           dotnet test backend/BicicletasUcsm.sln --no-build -c Release
           --logger trx --results-directory backend/TestResults
           --collect:"XPlat Code Coverage"
-          -- DataCollectionRunSettings.DataCollector.Configuration.Format=opencover
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
       - name: Finalizar análisis SonarCloud
         if: env.SONAR_TOKEN != ''
