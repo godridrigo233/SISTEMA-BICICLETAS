@@ -129,6 +129,20 @@ jobs:
           --collect:"XPlat Code Coverage"
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 
+      - name: Mostrar las pruebas fallidas como anotaciones
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          ns = {'t': 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'}
+          for archivo in glob.glob('backend/TestResults/*.trx'):
+              raiz = ET.parse(archivo).getroot()
+              for r in raiz.iterfind('.//t:UnitTestResult', ns):
+                  if r.get('outcome') == 'Failed':
+                      msg = ' '.join((r.findtext('.//t:Message', default='', namespaces=ns) or '').split())[:900]
+                      print(f"::error title={r.get('testName')}::{msg}")
+          PY
+
       - name: Finalizar análisis SonarCloud
         if: env.SONAR_TOKEN != ''
         run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
