@@ -4,6 +4,8 @@ using Bicicletas.Api.Endpoints;
 using Bicicletas.Api.Seguridad;
 using Bicicletas.Application.Autenticacion;
 using Bicicletas.Application.Garita;
+using Bicicletas.Application.Retiros;
+using Bicicletas.Domain.Biometria;
 using Bicicletas.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
@@ -22,6 +24,10 @@ builder.Services.AddInfraestructura();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<AutenticacionService>();
 builder.Services.AddScoped<RegistrarIngresoService>();
+builder.Services.AddScoped<AutorizarRetiroService>();
+// θ calibrado con el Dataset Primario Local UCSM; se recalibra sin recompilar (Biometria__UmbralTheta).
+builder.Services.AddSingleton(sp => new PoliticaBiometrica(
+    sp.GetRequiredService<IConfiguration>().GetValue("Biometria:UmbralTheta", PoliticaBiometrica.UmbralPorDefecto)));
 builder.Services.AddSingleton<IGeneradorToken, GeneradorJwt>();
 
 // JWT: la configuración se valida al arrancar; si falta la clave, la API no inicia.
