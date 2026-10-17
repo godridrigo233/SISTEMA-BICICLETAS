@@ -7,7 +7,7 @@ namespace Bicicletas.IntegrationTests.Infraestructura;
 /// <summary>Crea un estudiante sintético con una bicicleta en el estado indicado.</summary>
 public static class DatosGarita
 {
-    public sealed record BicicletaPrueba(Guid IdBicicleta, string CodigoQr);
+    public sealed record BicicletaPrueba(Guid IdBicicleta, string CodigoQr, Guid IdEstudiante);
 
     public static async Task<BicicletaPrueba> CrearBicicletaAsync(FabricaApi fabrica, string estado = "FUERA")
     {
@@ -29,6 +29,18 @@ public static class DatosGarita
             INSERT INTO bicicletas (id_bicicleta, id_estudiante, codigo_qr, numero_marco, marca_modelo, color, estado)
             VALUES ({idBicicleta}, {idEstudiante}, {qr}, {"IT-" + sufijo}, 'Marca Prueba', 'Rojo', {estado});
             """);
-        return new BicicletaPrueba(idBicicleta, qr);
+        return new BicicletaPrueba(idBicicleta, qr, idEstudiante);
+    }
+
+    /// <summary>Registra el descriptor de referencia (sintético) del titular.</summary>
+    public static async Task EnrolarAsync(FabricaApi fabrica, Guid idEstudiante, double[] vector)
+    {
+        ArgumentNullException.ThrowIfNull(fabrica);
+        using IServiceScope ambito = fabrica.Services.CreateScope();
+        AppDbContext db = ambito.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO descriptores_biometricos (id_estudiante, vector_embedding, version_modelo)
+            VALUES ({idEstudiante}, {vector}, 'face-api-0.22.2');
+            """);
     }
 }

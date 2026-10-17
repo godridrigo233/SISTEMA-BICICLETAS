@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PanelGarita from './PanelGarita';
 import { consultarPorQr, registrarIngreso } from '../../services/garitaService';
 
-vi.mock('../../services/garitaService', () => ({ consultarPorQr: vi.fn(), registrarIngreso: vi.fn() }));
+vi.mock('../../services/garitaService', () => ({ consultarPorQr: vi.fn(), registrarIngreso: vi.fn(), autorizarRetiro: vi.fn() }));
+vi.mock('../../biometria/extractorFacial', () => ({
+  obtenerFaceApi: vi.fn().mockResolvedValue({}),
+  cargarModelos: vi.fn().mockResolvedValue([]),
+  extraerDescriptor: vi.fn(),
+}));
 
 const QR = 'b0000000-0000-4000-8000-0000000000a1';
 const bici = (estado) => ({
@@ -45,13 +50,13 @@ describe('W2 · Panel de Garita — ingreso por QR (CU-03)', () => {
     expect(screen.getByLabelText('Código QR de la bicicleta')).toHaveValue('');
   });
 
-  it('con la bicicleta DENTRO no ofrece ingreso y anuncia la verificación facial', async () => {
+  it('con la bicicleta DENTRO no ofrece ingreso y abre la verificación facial', async () => {
     vi.mocked(consultarPorQr).mockResolvedValue(bici('DENTRO'));
     const usuario = userEvent.setup();
     render(<PanelGarita />);
 
     await escanear(usuario);
-    expect(await screen.findByText(/requiere verificación facial/)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Verificación facial · Retiro' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Registrar ingreso' })).not.toBeInTheDocument();
   });
 
