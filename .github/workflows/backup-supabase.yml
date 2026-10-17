@@ -1,3 +1,6 @@
+# Respaldo lógico diario de Supabase (CC-06), con cifrado simétrico AES-256 (CC-11).
+# El repositorio es público: cualquier usuario con sesión en GitHub puede descargar los
+# artefactos, por lo que el respaldo NUNCA se publica en texto plano (Ley N.º 29733).
 name: Respaldo Diario de Supabase
 
 on:
@@ -5,10 +8,12 @@ on:
     - cron: '0 3 * * *'   # 03:00 UTC = 22:00 hora de Lima
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   backup:
     runs-on: ubuntu-latest
-
     steps:
       - name: Instalar cliente de PostgreSQL 17
         run: |
@@ -19,8 +24,8 @@ jobs:
           sudo apt-get install -y postgresql-client-17
           /usr/lib/postgresql/17/bin/pg_dump --version
 
-      - name: Generar marca de tiempo
-        run: echo "FECHA=$(date +'%Y-%m-%d_%H-%M-%S')" >> $GITHUB_ENV
+      - name: Generar marca de tiempo (hora de Lima)
+        run: echo "FECHA=$(TZ=America/Lima date +'%Y-%m-%d_%H-%M-%S')" >> "$GITHUB_ENV"
 
       - name: Extraer base de datos (pg_dump)
         env:
@@ -29,13 +34,28 @@ jobs:
           /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
             --schema=public --no-owner --no-privileges \
             --file="respaldo_ucsm_${FECHA}.sql"
-          echo "Tamaño del respaldo:"; ls -lh "respaldo_ucsm_${FECHA}.sql"
           grep -q "CREATE TABLE" "respaldo_ucsm_${FECHA}.sql" || { echo "El respaldo no contiene tablas"; exit 1; }
+          echo "Tamaño del respaldo sin cifrar:"; ls -lh "respaldo_ucsm_${FECHA}.sql"
 
-      - name: Guardar respaldo como Artefacto en GitHub
+      - name: Comprimir y cifrar (AES-256, clave en GitHub Secrets)
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE" || { echo "Falta el secreto BACKUP_PASSPHRASE"; exit 1; }
+          gzip -9 "respaldo_ucsm_${FECHA}.sql"
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --pinentry-mode loopback \
+            --passphrase-fd 0 --symmetric --cipher-algo AES256 \
+            --output "respaldo_ucsm_${FECHA}.sql.gz.gpg" "respaldo_ucsm_${FECHA}.sql.gz"
+          shred -u "respaldo_ucsm_${FECHA}.sql.gz"
+          ls -lh "respaldo_ucsm_${FECHA}.sql.gz.gpg"
+
+      - name: Guardar respaldo cifrado como artefacto
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ env.FECHA }}
-          path: respaldo_ucsm_${{ env.FECHA }}.sql
+          path: respaldo_ucsm_${{ env.FECHA }}.sql.gz.gpg
           retention-days: 30
           if-no-files-found: error
+
+# Restauración (instancia PostgreSQL 17 de destino):
+#   gpg --decrypt respaldo_ucsm_<fecha>.sql.gz.gpg | gunzip | psql "<cadena_de_conexion_destino>"
