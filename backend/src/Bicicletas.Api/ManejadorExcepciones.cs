@@ -18,6 +18,7 @@ public sealed class ManejadorExcepciones(IProblemDetailsService problemas) : IEx
         {
             CredencialesInvalidasException => (StatusCodes.Status401Unauthorized, "No autenticado"),
             CuentaInactivaException => (StatusCodes.Status403Forbidden, "Cuenta inactiva"),
+            CuentaBloqueadaException => (StatusCodes.Status423Locked, "Cuenta bloqueada temporalmente"),
             RecursoNoEncontradoException => (StatusCodes.Status404NotFound, "No encontrado"),
             ConflictoEstadoException => (StatusCodes.Status409Conflict, "Conflicto de estado"),
             ValidacionNegocioException => (StatusCodes.Status422UnprocessableEntity, "Datos no válidos"),

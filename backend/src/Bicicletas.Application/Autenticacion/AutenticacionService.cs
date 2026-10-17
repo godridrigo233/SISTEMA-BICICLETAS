@@ -10,7 +10,8 @@ namespace Bicicletas.Application.Autenticacion;
 public sealed class AutenticacionService(
     IUsuarioRepositorio usuarios,
     IHasherContrasenas hasher,
-    IGeneradorToken generadorToken)
+    IGeneradorToken generadorToken,
+    IControlIntentos intentos)
 {
     // Hash BCrypt (costo 12) de un valor aleatorio: se verifica cuando el correo no existe.
     private const string HashFicticio = "$2a$12$CSHXz6VaFpMiyfSYklydOewHxvGwai5JJt6iin9P9B1RY22Svty0u";
@@ -20,15 +21,30 @@ public sealed class AutenticacionService(
         ArgumentNullException.ThrowIfNull(solicitud);
         string correo = NormalizarCorreo(solicitud.Correo);
 
+        // Tras 5 fallos seguidos la cuenta se bloquea 15 minutos, aunque luego se envíe la clave correcta.
+        TimeSpan? bloqueo = intentos.TiempoBloqueoRestante(correo);
+        if (bloqueo is not null)
+            throw new CuentaBloqueadaException(bloqueo.Value);
+
         Usuario? usuario = await usuarios.ObtenerPorCorreoAsync(correo, ct);
+        bool valida;
         if (usuario is null)
         {
-            hasher.Verificar(solicitud.Password, HashFicticio);
+            hasher.Verificar(solicitud.Password, HashFicticio);   // mismo costo que un correo existente
+            valida = false;
+        }
+        else
+        {
+            valida = hasher.Verificar(solicitud.Password, usuario.PasswordHash);
+        }
+
+        if (usuario is null || !valida)
+        {
+            intentos.RegistrarFallo(correo);
             throw new CredencialesInvalidasException();
         }
 
-        if (!hasher.Verificar(solicitud.Password, usuario.PasswordHash))
-            throw new CredencialesInvalidasException();
+        intentos.Reiniciar(correo);
 
         // La inactividad solo se revela a quien conoce la contraseña correcta.
         if (!usuario.Activo)

@@ -22,6 +22,7 @@ public static class DependencyInjection
         });
 
         services.AddSingleton<IHasherContrasenas, HasherBCrypt>();
+        services.AddSingleton<IControlIntentos, ControlIntentosMemoria>();
         services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
         return services;
     }
