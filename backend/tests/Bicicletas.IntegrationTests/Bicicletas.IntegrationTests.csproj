@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Bicicletas.Api\Bicicletas.Api.csproj" />
+    <ProjectReference Include="..\..\src\Bicicletas.Infrastructure\Bicicletas.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
