@@ -67,6 +67,49 @@ public sealed class AutenticacionTests(FabricaApi fabrica) : IClassFixture<Fabri
         Assert.Equal((HttpStatusCode)423, bloqueado.StatusCode);
     }
 
+    [FactConBaseDatos]
+    public async Task CambiarPassword_PrimerIngreso_EmiteTokenSinMarcaYAnulaLaTemporal()
+    {
+        string correo = await UsuariosPrueba.CrearAsync(fabrica, RolSistema.Garitero, debeCambiarPassword: true);
+        using HttpClient cliente = fabrica.CreateClient();
+        RespuestaLogin temporal = await IniciarSesion(cliente, correo, UsuariosPrueba.PasswordValida);
+        Assert.True(temporal.DebeCambiarPassword);
+
+        using var debil = Solicitud("/api/v1/auth/cambiar-password", temporal.Token,
+            new { passwordActual = UsuariosPrueba.PasswordValida, passwordNueva = "corta1" });
+        using HttpResponseMessage rechazo = await cliente.SendAsync(debil);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rechazo.StatusCode);
+
+        using var valida = Solicitud("/api/v1/auth/cambiar-password", temporal.Token,
+            new { passwordActual = UsuariosPrueba.PasswordValida, passwordNueva = "MiBicicleta2026" });
+        using HttpResponseMessage cambio = await cliente.SendAsync(valida);
+        Assert.True(cambio.StatusCode == HttpStatusCode.OK, await cambio.Content.ReadAsStringAsync());
+        RespuestaLogin? nuevo = await cambio.Content.ReadFromJsonAsync<RespuestaLogin>();
+        Assert.False(nuevo!.DebeCambiarPassword);
+
+        using HttpResponseMessage conTemporal = await cliente.PostAsJsonAsync(RutaLogin,
+            new { correo, password = UsuariosPrueba.PasswordValida });
+        Assert.Equal(HttpStatusCode.Unauthorized, conTemporal.StatusCode);
+        RespuestaLogin conPropia = await IniciarSesion(cliente, correo, "MiBicicleta2026");
+        Assert.False(conPropia.DebeCambiarPassword);
+    }
+
+    internal static async Task<RespuestaLogin> IniciarSesion(HttpClient cliente, string correo, string password)
+    {
+        using HttpResponseMessage respuesta = await cliente.PostAsJsonAsync(RutaLogin, new { correo, password });
+        Assert.True(respuesta.StatusCode == HttpStatusCode.OK, await respuesta.Content.ReadAsStringAsync());
+        return (await respuesta.Content.ReadFromJsonAsync<RespuestaLogin>())!;
+    }
+
+    internal static HttpRequestMessage Solicitud(string ruta, string token, object? cuerpo = null, HttpMethod? metodo = null)
+    {
+        var mensaje = new HttpRequestMessage(metodo ?? HttpMethod.Post, new Uri(ruta, UriKind.Relative));
+        mensaje.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        if (cuerpo is not null)
+            mensaje.Content = JsonContent.Create(cuerpo);
+        return mensaje;
+    }
+
     private static async Task<string?> Detalle(HttpResponseMessage respuesta) =>
         (await respuesta.Content.ReadFromJsonAsync<Problema>())?.Detail;
 

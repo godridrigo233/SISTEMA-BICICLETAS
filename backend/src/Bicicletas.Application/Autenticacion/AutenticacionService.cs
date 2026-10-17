@@ -1,3 +1,4 @@
+using Bicicletas.Domain.Comun;
 using Bicicletas.Domain.Usuarios;
 
 namespace Bicicletas.Application.Autenticacion;
@@ -55,6 +56,30 @@ public sealed class AutenticacionService(
             usuario.ActualizarHash(hasher.Hashear(solicitud.Password));
             await usuarios.GuardarCambiosAsync(ct);
         }
+
+        TokenEmitido token = generadorToken.Generar(usuario);
+        return new LoginResponse(token.Token, token.ExpiraEnUtc, usuario.IdRol, usuario.DebeCambiarPassword);
+    }
+
+    /// <summary>
+    /// Reemplaza la contraseña temporal por una propia y devuelve un token nuevo sin la marca
+    /// debe_cambiar_password, para que el usuario continúe sin volver a iniciar sesión.
+    /// </summary>
+    public async Task<LoginResponse> CambiarPasswordAsync(Guid idUsuario, CambiarPasswordRequest solicitud, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(solicitud);
+        Usuario usuario = await usuarios.ObtenerPorIdAsync(idUsuario, ct)
+            ?? throw new RecursoNoEncontradoException("La cuenta no existe.");
+        if (!usuario.Activo)
+            throw new CuentaInactivaException();
+
+        // 422 y no 401: un 401 cerraría la sesión en la SPA por un simple error de digitación.
+        if (!hasher.Verificar(solicitud.PasswordActual, usuario.PasswordHash))
+            throw new ValidacionNegocioException("La contraseña actual no es correcta.");
+
+        ReglasContrasena.Validar(solicitud.PasswordNueva, solicitud.PasswordActual);
+        usuario.EstablecerPasswordPropia(hasher.Hashear(solicitud.PasswordNueva));
+        await usuarios.GuardarCambiosAsync(ct);
 
         TokenEmitido token = generadorToken.Generar(usuario);
         return new LoginResponse(token.Token, token.ExpiraEnUtc, usuario.IdRol, usuario.DebeCambiarPassword);

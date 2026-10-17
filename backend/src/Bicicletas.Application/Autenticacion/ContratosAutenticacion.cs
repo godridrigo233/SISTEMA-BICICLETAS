@@ -12,3 +12,8 @@ public sealed record LoginResponse(string Token, DateTime ExpiraEnUtc, short IdR
 
 /// <summary>Token firmado y su vencimiento.</summary>
 public sealed record TokenEmitido(string Token, DateTime ExpiraEnUtc);
+
+/// <summary>Cuerpo de POST /api/v1/auth/cambiar-password (primer ingreso con contraseña temporal).</summary>
+public sealed record CambiarPasswordRequest(
+    [Required, MaxLength(128)] string PasswordActual,
+    [Required, MaxLength(128)] string PasswordNueva);
