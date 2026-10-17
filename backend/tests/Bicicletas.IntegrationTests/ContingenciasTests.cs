@@ -120,7 +120,7 @@ public sealed class ContingenciasTests(FabricaApi fabrica) : IClassFixture<Fabri
 
             Guid idIngreso = await IdContingenciaAsync(fIngreso);
             using HttpResponseMessage ci = await EnviarAsync(cliente, token, $"/api/v1/contingencias/{idIngreso}/conciliar");
-            Assert.Equal("CONCILIADO", (await ci.Content.ReadFromJsonAsync<Resultado>())!.Resultado);
+            Assert.Equal("CONCILIADO", (await ci.Content.ReadFromJsonAsync<Conciliacion>())!.Resultado);
             Assert.Equal("DENTRO", await EstadoAsync(fuera.IdBicicleta));
             Assert.Equal("CONTINGENCIA", await ConsultarAsync<string>($"""
                 SELECT registro AS "Value" FROM v_monitoreo_auditoria WHERE id_bicicleta = {fuera.IdBicicleta} AND resultado = 'MANUAL'
@@ -128,7 +128,7 @@ public sealed class ContingenciasTests(FabricaApi fabrica) : IClassFixture<Fabri
 
             Guid idRetiro = await IdContingenciaAsync(fRetiro);
             using HttpResponseMessage cr = await EnviarAsync(cliente, token, $"/api/v1/contingencias/{idRetiro}/conciliar");
-            Assert.Equal("OBSERVADO", (await cr.Content.ReadFromJsonAsync<Resultado>())!.Resultado);
+            Assert.Equal("OBSERVADO", (await cr.Content.ReadFromJsonAsync<Conciliacion>())!.Resultado);
             Assert.Equal("DENTRO", await EstadoAsync(dentro.IdBicicleta));
 
             using HttpResponseMessage detalle = await EnviarAsync(cliente, token, $"/api/v1/contingencias/{idRetiro}", metodo: HttpMethod.Get);
@@ -138,12 +138,12 @@ public sealed class ContingenciasTests(FabricaApi fabrica) : IClassFixture<Fabri
 
             using HttpResponseMessage noReconoce = await EnviarAsync(cliente, token, $"/api/v1/contingencias/{idRetiro}/revisar",
                 new { resolucion = "NO_RECONOCE", motivo = "Llamada al titular, niega el retiro" });
-            Assert.Equal("OBSERVADO", (await noReconoce.Content.ReadFromJsonAsync<Resultado>())!.Resultado);
+            Assert.Equal("OBSERVADO", (await noReconoce.Content.ReadFromJsonAsync<Conciliacion>())!.Resultado);
 
             using HttpResponseMessage corregido = await EnviarAsync(cliente, token, $"/api/v1/contingencias/{idRetiro}/revisar",
                 new { resolucion = "ERROR_DIGITACION", dniCorregido = dniReal, motivo = "Se transcribió mal el folio físico" });
             Assert.True(corregido.StatusCode == HttpStatusCode.OK, await corregido.Content.ReadAsStringAsync());
-            Assert.Equal("CONCILIADO", (await corregido.Content.ReadFromJsonAsync<Resultado>())!.Resultado);
+            Assert.Equal("CONCILIADO", (await corregido.Content.ReadFromJsonAsync<Conciliacion>())!.Resultado);
             Assert.Equal("FUERA", await EstadoAsync(dentro.IdBicicleta));
 
             using HttpResponseMessage otraVez = await EnviarAsync(cliente, token, $"/api/v1/contingencias/{idRetiro}/conciliar");
@@ -171,7 +171,7 @@ public sealed class ContingenciasTests(FabricaApi fabrica) : IClassFixture<Fabri
             Assert.Equal(HttpStatusCode.BadRequest, sinMotivo.StatusCode);
             using HttpResponseMessage confirmado = await EnviarAsync(cliente, token, $"/api/v1/contingencias/{id}/revisar",
                 new { resolucion = "CONFIRMADO_TITULAR", motivo = "Retiró un tercero autorizado por el titular" });
-            Assert.Equal("CONCILIADO", (await confirmado.Content.ReadFromJsonAsync<Resultado>())!.Resultado);
+            Assert.Equal("CONCILIADO", (await confirmado.Content.ReadFromJsonAsync<Conciliacion>())!.Resultado);
             Assert.Equal("FUERA", await EstadoAsync(dentro.IdBicicleta));
         }
 
@@ -186,7 +186,7 @@ public sealed class ContingenciasTests(FabricaApi fabrica) : IClassFixture<Fabri
     internal sealed record FilaPrevia(int Fila, string Folio, string? Bicicleta, bool Valida, string? Error);
     internal sealed record Importacion(int Insertadas, int ConError);
     internal sealed record Pendiente(Guid IdContingencia, string Folio, string Origen, string Estado);
-    internal sealed record Resultado(string Folio, string Tipo, string Resultado);
+    internal sealed record Conciliacion(string Folio, string Tipo, string Resultado);
     internal sealed record Detalle(string? DniAnotado, string DniTitularParcial, string Estado);
-    internal sealed record Lote(int Conciliados, int Observados, int Conflictos, List<Resultado> Detalle);
+    internal sealed record Lote(int Conciliados, int Observados, int Conflictos, List<Conciliacion> Detalle);
 }
