@@ -18,6 +18,16 @@ public sealed class AuthController(AutenticacionService autenticacion) : Control
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest solicitud, CancellationToken ct) =>
         Ok(await autenticacion.IniciarSesionAsync(solicitud, ct));
 
+    /// <summary>Datos de la sesión vigente; la SPA lo usa para validar el token al recargar la página.</summary>
+    /// <response code="200">Token válido y contraseña definitiva.</response>
+    /// <response code="403">El token aún tiene la contraseña temporal.</response>
+    [HttpGet("sesion")]
+    [Authorize(Policy = Politicas.SesionActiva)]
+    public ActionResult<SesionResponse> Sesion() =>
+        Ok(new SesionResponse(
+            Guid.Parse(User.FindFirst(ClaimsSistema.IdUsuario)!.Value),
+            short.Parse(User.FindFirst(ClaimsSistema.IdRol)!.Value, System.Globalization.CultureInfo.InvariantCulture)));
+
     /// <summary>Primer ingreso: reemplaza la contraseña temporal (es la única operación que admite ese token).</summary>
     /// <response code="200">Contraseña cambiada; se devuelve un JWT nuevo sin la marca de contraseña temporal.</response>
     /// <response code="422">Contraseña actual incorrecta o nueva contraseña fuera de la política.</response>
@@ -29,3 +39,6 @@ public sealed class AuthController(AutenticacionService autenticacion) : Control
         return Ok(await autenticacion.CambiarPasswordAsync(idUsuario, solicitud, ct));
     }
 }
+
+/// <summary>Identidad mínima de la sesión vigente (sin datos personales).</summary>
+public sealed record SesionResponse(Guid IdUsuario, short IdRol);

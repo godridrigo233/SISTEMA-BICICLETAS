@@ -46,7 +46,7 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
             RoleClaimType = ClaimsSistema.IdRol,
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddPoliticasRbac();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ManejadorExcepciones>();
