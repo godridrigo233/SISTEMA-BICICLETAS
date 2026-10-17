@@ -9,7 +9,7 @@ namespace Bicicletas.Api;
 /// Traduce las excepciones de negocio a respuestas HTTP con formato ProblemDetails (RFC 9457).
 /// Los errores no previstos responden 500 sin detalles internos (OWASP A05).
 /// </summary>
-public sealed class ManejadorExcepciones(IProblemDetailsService problemas) : IExceptionHandler
+public sealed class ManejadorExcepciones(IProblemDetailsService problemas, IHostEnvironment entorno) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
@@ -34,7 +34,10 @@ public sealed class ManejadorExcepciones(IProblemDetailsService problemas) : IEx
             {
                 Status = estado,
                 Title = titulo,
-                Detail = estado == StatusCodes.Status500InternalServerError ? null : exception.Message,
+                // En producción un error 500 no expone detalles internos; en desarrollo y pruebas sí.
+                Detail = estado != StatusCodes.Status500InternalServerError || !entorno.IsProduction()
+                    ? exception.Message
+                    : null,
             },
         });
     }

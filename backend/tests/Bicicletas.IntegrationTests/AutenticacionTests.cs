@@ -19,7 +19,7 @@ public sealed class AutenticacionTests(FabricaApi fabrica) : IClassFixture<Fabri
         using HttpResponseMessage respuesta = await cliente.PostAsJsonAsync(RutaLogin,
             new { correo = correo.ToUpperInvariant(), password = UsuariosPrueba.PasswordValida });
 
-        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.True(respuesta.StatusCode == HttpStatusCode.OK, await respuesta.Content.ReadAsStringAsync());
         RespuestaLogin? cuerpo = await respuesta.Content.ReadFromJsonAsync<RespuestaLogin>();
         Assert.NotNull(cuerpo);
         Assert.Equal(RolSistema.Garitero, cuerpo.IdRol);
