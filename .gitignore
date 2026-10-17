@@ -1,0 +1,31 @@
+# --- Datos personales y secretos: NUNCA se versionan (repositorio público, Ley N.º 29733) ---
+*.sql.gz
+*.gpg
+respaldo_*.sql
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+ia/calibracion/datos/
+*.csv
+!database/seeds/*.csv
+!frontend/src/**/__fixtures__/*.csv
+
+# --- .NET ---
+bin/
+obj/
+TestResults/
+*.user
+.vs/
+
+# --- Node / Vite ---
+node_modules/
+dist/
+coverage/
+
+# --- Sistema / editores ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
