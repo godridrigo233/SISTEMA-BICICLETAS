@@ -1,0 +1,222 @@
+# Integración continua: se ejecuta en cada push a cualquier rama y en cada Pull Request a main.
+# Las pruebas usan un PostgreSQL 17 efímero del propio pipeline: la base de datos de Supabase
+# NUNCA se usa en CI, por lo que su cadena de conexión no es necesaria aquí.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Credenciales de un contenedor desechable que solo existe durante el job (no son secretos).
+  PGHOST: localhost
+  PGPORT: '5432'
+  PGUSER: ci
+  PGPASSWORD: ci
+  PGDATABASE: bicicletas_ci
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Base de datos: las migraciones se aplican desde cero y se prueban las
+  #    funciones de conciliación (ACID) sobre PostgreSQL 17.
+  # ---------------------------------------------------------------------------
+  database:
+    name: Base de datos (migraciones + pruebas SQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: bicicletas_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Crear roles propios de Supabase (anon, authenticated)
+        run: psql -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;"
+
+      - name: Aplicar migraciones en orden
+        run: |
+          for f in $(ls database/migrations/*.sql | sort); do
+            echo "==> $f"
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Ejecutar pruebas SQL
+        run: |
+          for f in $(ls database/tests/*.sql | sort); do
+            echo "==> $f"
+            psql -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+  # ---------------------------------------------------------------------------
+  # 2. API ASP.NET Core 10 (LTS): compilación, pruebas xUnit (unitarias + integración),
+  #    cobertura y análisis estático en SonarCloud.
+  # ---------------------------------------------------------------------------
+  backend:
+    name: API ASP.NET Core 10 (xUnit + SonarCloud)
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_ORG: ${{ vars.SONAR_ORGANIZATION }}
+      ConnectionStrings__Pruebas: Host=localhost;Port=5432;Database=bicicletas_ci;Username=ci;Password=ci
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: bicicletas_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0            # SonarCloud necesita el historial para el "código nuevo"
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-java@v5  # El escáner de Sonar requiere Java 17+
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Preparar base de datos de pruebas de integración
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;"
+          for f in $(ls database/migrations/*.sql | sort); do psql -v ON_ERROR_STOP=1 -q -f "$f"; done
+
+      - name: Restaurar dependencias
+        run: dotnet restore backend/BicicletasUcsm.sln
+
+      - name: Iniciar análisis SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet sonarscanner begin \
+            /k:"${SONAR_ORG}_sistema-bicicletas-api" \
+            /o:"${SONAR_ORG}" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="${SONAR_TOKEN}" \
+            /d:sonar.cs.opencover.reportsPaths="backend/TestResults/**/coverage.opencover.xml" \
+            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx"
+
+      - name: Compilar
+        run: dotnet build backend/BicicletasUcsm.sln --no-restore -c Release
+
+      - name: Ejecutar pruebas xUnit con cobertura
+        run: >-
+          dotnet test backend/BicicletasUcsm.sln --no-build -c Release
+          --logger trx --results-directory backend/TestResults
+          --collect:"XPlat Code Coverage"
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+
+      - name: Finalizar análisis SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+
+      - name: Revisar paquetes NuGet vulnerables (OWASP A06)
+        run: dotnet list backend/BicicletasUcsm.sln package --vulnerable --include-transitive
+
+      - name: Publicar resultados de pruebas
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: resultados-pruebas-api
+          path: backend/TestResults
+          retention-days: 14
+
+      - name: Verificar que la imagen Docker compila
+        if: hashFiles('backend/Dockerfile') != ''
+        run: docker build -t bicicletas-api:ci backend
+
+  # ---------------------------------------------------------------------------
+  # 3. SPA React: lint, pruebas Vitest + React Testing Library, cobertura,
+  #    compilación y análisis estático en SonarCloud.
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: SPA React (Vitest + SonarCloud)
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'        # Node 20 dejó de tener soporte en abril de 2026
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Pruebas Vitest con cobertura
+        run: npm run test:ci
+
+      - name: Auditoría de dependencias (OWASP A06)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Análisis SonarCloud
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v8
+        with:
+          projectBaseDir: frontend
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_ORGANIZATION }}_sistema-bicicletas-web
+
+  # ---------------------------------------------------------------------------
+  # 4. (Opcional) Despliegue: solo en main y solo si todo lo anterior pasó.
+  #    En Render y Vercel se desactiva el auto-deploy para que el pipeline
+  #    sea quien dispare el despliegue mediante Deploy Hooks (secretos).
+  # ---------------------------------------------------------------------------
+  desplegar:
+    name: Despliegue a staging (Render + Vercel)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [database, backend, frontend]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Disparar despliegue de la API en Render
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "RENDER_DEPLOY_HOOK_URL no configurado: se omite"; exit 0; fi
+          curl -fsS -X POST "$HOOK" > /dev/null && echo "Despliegue de la API solicitado"
+
+      - name: Disparar despliegue de la SPA en Vercel
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "VERCEL_DEPLOY_HOOK_URL no configurado: se omite"; exit 0; fi
+          curl -fsS -X POST "$HOOK" > /dev/null && echo "Despliegue de la SPA solicitado"

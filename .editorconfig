@@ -25,3 +25,7 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
+
+# Pruebas xUnit: la convención Metodo_Condicion_Resultado usa guiones bajos a propósito.
+[backend/tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
