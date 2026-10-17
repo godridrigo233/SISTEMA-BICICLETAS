@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Globalization;
 using System.Text;
 using Bicicletas.Application.Comun;
@@ -13,8 +14,8 @@ public sealed class MonitoreoService(IMonitoreoRepositorio repositorio, TimeProv
     private static readonly string[] Tipos = ["INGRESO", "RETIRO"];
     private static readonly string[] Resultados = ["EXITOSO", "DENEGADO", "MANUAL"];
     private static readonly string[] Registros = ["AUTOMATICO", "CONTINGENCIA", "DERIVACION"];
-    private static readonly char[] InicioDeFormula = ['=', '+', '-', '@', '\t', '\r'];
-    private static readonly char[] RequiereComillas = [';', '"', '\n', '\r'];
+    private static readonly SearchValues<char> InicioDeFormula = SearchValues.Create("=+-@\t\r");
+    private static readonly SearchValues<char> RequiereComillas = SearchValues.Create(";\"\n\r");
 
     public Task<ResumenMonitoreoResponse> ResumenAsync(CancellationToken ct) =>
         repositorio.ResumenAsync(HoraPeru.InicioDelDiaUtc(HoraPeru.Hoy(reloj)), ct);
@@ -63,7 +64,7 @@ public sealed class MonitoreoService(IMonitoreoRepositorio repositorio, TimeProv
     {
         if (string.IsNullOrEmpty(valor))
             return string.Empty;
-        string texto = valor.IndexOfAny(InicioDeFormula) == 0 ? "'" + valor : valor;
-        return texto.IndexOfAny(RequiereComillas) >= 0 ? "\"" + texto.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : texto;
+        string texto = valor.AsSpan().IndexOfAny(InicioDeFormula) == 0 ? "'" + valor : valor;
+        return texto.AsSpan().ContainsAny(RequiereComillas) ? "\"" + texto.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : texto;
     }
 }

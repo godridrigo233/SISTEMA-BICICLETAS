@@ -3,6 +3,8 @@ import CambiarPasswordPage from '../features/auth/CambiarPasswordPage';
 import LoginPage from '../features/auth/LoginPage';
 import PanelGarita from '../features/garita/PanelGarita';
 import RegistroEnrolamiento from '../features/enrolamiento/RegistroEnrolamiento';
+import HistorialPage from '../features/historial/HistorialPage';
+import MonitoreoPage from '../features/monitoreo/MonitoreoPage';
 import { SesionProvider } from '../features/auth/SesionContext';
 import Plantilla from './Plantilla';
 import ProtectedRoute from './ProtectedRoute';
@@ -22,14 +24,14 @@ export default function App() {
           <Route element={<Plantilla />}>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.ESTUDIANTE]} />}>
               <Route path="/estudiante/registro" element={<RegistroEnrolamiento />} />
-              <Route path="/estudiante/historial" element={<Pendiente nombre="W5 · Historial" />} />
+              <Route path="/estudiante/historial" element={<HistorialPage />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.GARITERO, ROL.SUPERVISOR, ROL.ADMINISTRADOR]} />}>
               <Route path="/garita/control-acceso" element={<PanelGarita />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.SUPERVISOR, ROL.ADMINISTRADOR]} />}>
               <Route path="/supervisor/contingencias" element={<Pendiente nombre="W3 · Consola de Regularización" />} />
-              <Route path="/gestion/monitoreo" element={<Pendiente nombre="W6 · Monitoreo" />} />
+              <Route path="/gestion/monitoreo" element={<MonitoreoPage />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.ADMINISTRADOR]} />}>
               <Route path="/admin/usuarios" element={<Pendiente nombre="W7 · Usuarios y Roles" />} />

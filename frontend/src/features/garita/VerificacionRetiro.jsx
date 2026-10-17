@@ -1,18 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { cargarModelos, extraerDescriptor, obtenerFaceApi } from '../../biometria/extractorFacial';
-import { autorizarRetiro } from '../../services/garitaService';
+import { autorizarRetiro, retiroManual } from '../../services/garitaService';
+import { mensajeDeError } from '../../services/apiClient';
 
 /**
  * CU-04 en W2: captura del rostro, extracción del descriptor en el navegador y decisión en la API.
  * El video solo se muestra en vivo: ningún fotograma se guarda ni se envía (Ley N.º 29733).
  */
-export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, alCancelar }) {
+export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, alCancelar, permiteManual = false }) {
   const video = useRef(null);
   const flujo = useRef(null);
   const faceapi = useRef(null);
   const [fase, setFase] = useState('preparando');
   const [mensaje, setMensaje] = useState('');
   const [resultado, setResultado] = useState(null);
+  const [derivable, setDerivable] = useState(false);
+  const [dni, setDni] = useState('');
+  const [manual, setManual] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -50,10 +54,27 @@ export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, al
         alTerminar({ tipo: 'exito', resultado: 'EXITOSO', texto: `Retiro autorizado: ${bicicleta.titular}. La bicicleta figura FUERA.` });
       } else {
         setFase('denegado');
+        setDerivable(true);
       }
     } catch (error) {
       setFase('lista');
+      if (error?.response?.status === 409) setDerivable(true);   // p. ej., titular sin enrolamiento
       setMensaje(error?.response?.data?.detail ?? error?.message ?? 'No se pudo verificar el rostro.');
+    }
+  }
+
+  async function autorizarManual(evento) {
+    evento.preventDefault();
+    if (!/^\d{8}$/.test(dni) || manual) return;
+    setManual(true);
+    setMensaje('');
+    try {
+      await retiroManual(bicicleta.idBicicleta, dni);
+      alTerminar({ tipo: 'exito', resultado: 'MANUAL', texto: `Retiro manual autorizado con DNI: ${bicicleta.titular}. La bicicleta figura FUERA.` });
+    } catch (error) {
+      setMensaje(mensajeDeError(error, 'No se pudo registrar el retiro manual.'));
+    } finally {
+      setManual(false);
     }
   }
 
@@ -90,7 +111,7 @@ export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, al
           </p>
           <div className="con-boton">
             <button type="button" className="boton boton-primario" onClick={() => { setResultado(null); setFase('lista'); }}>Reintentar captura</button>
-            <button type="button" className="boton" onClick={derivar}>Derivar al supervisor</button>
+            {!permiteManual && <button type="button" className="boton" onClick={derivar}>Derivar al supervisor</button>}
           </div>
         </>
       ) : (
@@ -100,6 +121,23 @@ export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, al
           </button>
           <button type="button" className="boton" onClick={alCancelar}>Cancelar</button>
         </div>
+      )}
+
+      {permiteManual && derivable && (
+        <form className="ficha" onSubmit={autorizarManual} aria-label="Retiro manual del supervisor">
+          <h3>Retiro manual (Supervisor)</h3>
+          <p className="ayuda">Solicite el DNI físico del titular. Si coincide con el registrado, la bicicleta pasa a FUERA y queda auditada como MANUAL.</p>
+          <div className="campo">
+            <label htmlFor="dni-titular">DNI del titular (8 dígitos)</label>
+            <div className="con-boton">
+              <input id="dni-titular" inputMode="numeric" maxLength={8} autoComplete="off" value={dni}
+                onChange={(e) => setDni(e.target.value.replace(/\D/g, ''))} />
+              <button type="submit" className="boton boton-primario" disabled={dni.length !== 8 || manual}>
+                {manual ? 'Registrando…' : 'Autorizar retiro manual'}
+              </button>
+            </div>
+          </div>
+        </form>
       )}
     </section>
   );

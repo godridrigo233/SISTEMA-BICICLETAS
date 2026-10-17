@@ -7,3 +7,8 @@ export const registrarBicicleta = async (datos) => (await api.post('/estudiante/
 export async function enrolar(descriptor) {
   await api.put('/estudiante/enrolamiento', { descriptor, consentimientoAceptado: true, versionModelo: 'face-api-0.22.2' });
 }
+
+/** W5: el servidor filtra por el estudiante del token; aquí solo se envían filtros y página. */
+export const consultarHistorial = async (filtros) => (await api.get('/estudiante/historial', { params: limpiar(filtros) })).data;
+
+export const limpiar = (filtros) => Object.fromEntries(Object.entries(filtros).filter(([, v]) => v !== '' && v != null));

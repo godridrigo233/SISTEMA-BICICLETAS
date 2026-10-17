@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { consultarPorQr, registrarIngreso } from '../../services/garitaService';
 import VerificacionRetiro from './VerificacionRetiro';
+import { useSesion } from '../auth/SesionContext';
+import { ROL } from '../../app/rutasPorRol';
 
 const SIN_CONEXION = 'Sin conexión con el servidor. Aplique el protocolo de bitácora física; los movimientos se regularizarán en la Consola de Contingencias.';
 
@@ -16,6 +18,7 @@ const hora = () => new Date().toLocaleTimeString('es-PE', { hour: '2-digit', min
 
 /** W2 · Panel Central de Garita: ingreso por QR (CU-03) y retiro con verificación facial (CU-04). */
 export default function PanelGarita() {
+  const sesion = useSesion()?.sesion;
   const campoQr = useRef(null);
   const botonIngreso = useRef(null);
   const inicio = useRef(0);
@@ -108,7 +111,8 @@ export default function PanelGarita() {
               <button type="button" className="boton" onClick={reiniciar}>Cancelar</button>
             </div>
           ) : (
-            <VerificacionRetiro bicicleta={bicicleta} inicioMs={inicio.current} alTerminar={terminarRetiro} alCancelar={reiniciar} />
+            <VerificacionRetiro bicicleta={bicicleta} inicioMs={inicio.current} alTerminar={terminarRetiro} alCancelar={reiniciar}
+              permiteManual={[ROL.SUPERVISOR, ROL.ADMINISTRADOR].includes(sesion?.idRol)} />
           )}
         </section>
       )}
@@ -120,7 +124,7 @@ export default function PanelGarita() {
             <thead><tr><th>Hora</th><th>Estudiante</th><th>Bicicleta</th><th>Tipo</th><th>Resultado</th></tr></thead>
             <tbody>
               {movimientos.map((m, i) => (
-                <tr key={`${m.hora}-${i}`}><td>{m.hora}</td><td>{m.titular}</td><td>{m.bici}</td><td>{m.tipo}</td><td>{m.resultado === 'EXITOSO' ? '✓' : '✗'} {m.resultado}</td></tr>
+                <tr key={`${m.hora}-${i}`}><td>{m.hora}</td><td>{m.titular}</td><td>{m.bici}</td><td>{m.tipo}</td><td>{m.resultado === 'DENEGADO' ? '✗' : '✓'} {m.resultado}</td></tr>
               ))}
             </tbody>
           </table>
