@@ -6,7 +6,8 @@ import { mensajeDeError } from '../../services/apiClient';
 import { iniciarSesion } from '../../services/authService';
 import { useSesion } from './SesionContext';
 
-const DOMINIO = /^[^\s@]+@ucsm\.edu\.pe$/i;
+// Personal: @ucsm.edu.pe · Estudiantes: @estudiante.ucsm.edu.pe
+const DOMINIO = /^[^\s@]+@(estudiante\.)?ucsm\.edu\.pe$/i;
 
 /** W1 · Login unificado para los cuatro roles (RF-01). */
 export default function LoginPage() {
@@ -55,8 +56,8 @@ export default function LoginPage() {
               value={correo} onChange={(e) => setCorreo(e.target.value)}
               aria-invalid={correo.length > 0 && !correoValido} aria-describedby="ayuda-correo" />
             {correo.length > 0 && !correoValido
-              ? <p id="ayuda-correo" className="error-campo">Use su correo @ucsm.edu.pe.</p>
-              : <p id="ayuda-correo" className="ayuda">Solo dominio @ucsm.edu.pe</p>}
+              ? <p id="ayuda-correo" className="error-campo">Use su correo @ucsm.edu.pe o @estudiante.ucsm.edu.pe.</p>
+              : <p id="ayuda-correo" className="ayuda">Personal: @ucsm.edu.pe · Estudiantes: @estudiante.ucsm.edu.pe</p>}
           </div>
           <div className="campo">
             <label htmlFor="password">Contraseña</label>
