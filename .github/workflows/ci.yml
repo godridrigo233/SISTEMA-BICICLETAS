@@ -65,12 +65,14 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # 2. API ASP.NET Core 10 (LTS): compilación, pruebas xUnit (unitarias + integración),
-  #    y cobertura.
+  #    cobertura y análisis estático en SonarCloud.
   # ---------------------------------------------------------------------------
   backend:
-    name: API ASP.NET Core 10 (xUnit)
+    name: API ASP.NET Core 10 (xUnit + SonarCloud)
     runs-on: ubuntu-latest
     env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_ORG: ${{ vars.SONAR_ORGANIZATION }}
       ConnectionStrings__Pruebas: Host=localhost;Port=5432;Database=bicicletas_ci;Username=ci;Password=ci
     services:
       postgres:
@@ -85,10 +87,17 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0            # SonarCloud necesita el historial para el "código nuevo"
 
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
+
+      - uses: actions/setup-java@v5  # El escáner de Sonar requiere Java 17+
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Preparar base de datos de pruebas de integración
         run: |
@@ -97,6 +106,18 @@ jobs:
 
       - name: Restaurar dependencias
         run: dotnet restore backend/BicicletasUcsm.sln
+
+      - name: Iniciar análisis SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet sonarscanner begin \
+            /k:"${SONAR_ORG}_sistema-bicicletas-api" \
+            /o:"${SONAR_ORG}" \
+            /d:sonar.host.url="https://sonarcloud.io" \
+            /d:sonar.token="${SONAR_TOKEN}" \
+            /d:sonar.cs.opencover.reportsPaths="backend/TestResults/**/coverage.opencover.xml" \
+            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx"
 
       - name: Compilar
         run: dotnet build backend/BicicletasUcsm.sln --no-restore -c Release
@@ -107,6 +128,10 @@ jobs:
           --logger trx --results-directory backend/TestResults
           --collect:"XPlat Code Coverage"
           -- DataCollectionRunSettings.DataCollector.Configuration.Format=opencover
+
+      - name: Finalizar análisis SonarCloud
+        if: env.SONAR_TOKEN != ''
+        run: dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
 
       - name: Revisar paquetes NuGet vulnerables (OWASP A06)
         run: dotnet list backend/BicicletasUcsm.sln package --vulnerable --include-transitive
@@ -125,16 +150,20 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # 3. SPA React: lint, pruebas Vitest + React Testing Library, cobertura,
-  #    y compilación de producción.
+  #    compilación y análisis estático en SonarCloud.
   # ---------------------------------------------------------------------------
   frontend:
-    name: SPA React (Vitest)
+    name: SPA React (Vitest + SonarCloud)
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     defaults:
       run:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v5
         with:
@@ -157,6 +186,14 @@ jobs:
       - name: Compilar
         run: npm run build
 
+      - name: Análisis SonarCloud
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v8
+        with:
+          projectBaseDir: frontend
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_ORGANIZATION }}_sistema-bicicletas-web
 
   # ---------------------------------------------------------------------------
   # 4. (Opcional) Despliegue: solo en main y solo si todo lo anterior pasó.
