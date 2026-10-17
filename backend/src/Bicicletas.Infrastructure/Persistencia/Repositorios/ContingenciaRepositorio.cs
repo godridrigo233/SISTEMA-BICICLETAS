@@ -80,20 +80,31 @@ public sealed class ContingenciaRepositorio(AppDbContext db) : IContingenciaRepo
               .Take(500)
               .ToListAsync(ct);
 
-    public Task<DetalleContingenciaResponse?> ObtenerDetalleAsync(Guid idContingencia, CancellationToken ct) =>
-        (from c in db.Contingencias.AsNoTracking()
-         join b in db.Bicicletas.AsNoTracking() on c.IdBicicleta equals b.IdBicicleta
-         join e in db.Estudiantes.AsNoTracking() on b.IdEstudiante equals e.IdEstudiante
-         join u in db.Usuarios.AsNoTracking() on e.IdEstudiante equals u.IdUsuario
-         join v in db.Usuarios.AsNoTracking() on c.IdVigilante equals (Guid?)v.IdUsuario into vs
-         from v in vs.DefaultIfEmpty()
-         where c.IdContingencia == idContingencia
-         select new DetalleContingenciaResponse(c.IdContingencia, c.FolioBitacora,
-             c.TipoEvento == Domain.Auditoria.TipoEvento.Ingreso ? "INGRESO" : "RETIRO",
-             c.EstadoConciliacion, c.DniPresentado, e.Dni.Substring(0, 4) + " ****",
-             e.Nombres + " " + e.Apellidos, u.CorreoInstitucional, b.MarcaModelo + " / " + b.Color, b.NumeroMarco,
-             c.HoraIngresoManual, v == null ? null : v.CorreoInstitucional, c.MotivoObservacion))
-        .SingleOrDefaultAsync(ct);
+    public async Task<DetalleContingenciaResponse?> ObtenerDetalleAsync(Guid idContingencia, CancellationToken ct)
+    {
+        var fila = await (from c in db.Contingencias.AsNoTracking()
+                          join b in db.Bicicletas.AsNoTracking() on c.IdBicicleta equals b.IdBicicleta
+                          join e in db.Estudiantes.AsNoTracking() on b.IdEstudiante equals e.IdEstudiante
+                          join u in db.Usuarios.AsNoTracking() on e.IdEstudiante equals u.IdUsuario
+                          join v in db.Usuarios.AsNoTracking() on c.IdVigilante equals (Guid?)v.IdUsuario into vs
+                          from v in vs.DefaultIfEmpty()
+                          where c.IdContingencia == idContingencia
+                          select new
+                          {
+                              c.IdContingencia, c.FolioBitacora, c.TipoEvento, c.EstadoConciliacion, c.DniPresentado, e.Dni,
+                              Titular = e.Nombres + " " + e.Apellidos, u.CorreoInstitucional, Bicicleta = b.MarcaModelo + " / " + b.Color,
+                              b.NumeroMarco, c.HoraIngresoManual, Vigilante = v == null ? null : v.CorreoInstitucional, c.MotivoObservacion,
+                          })
+                         .SingleOrDefaultAsync(ct);
+        if (fila is null)
+            return null;
+        // El DNI completo del titular no sale del servidor: solo los 4 primeros dígitos (Ley N.º 29733).
+        string parcial = string.Concat(fila.Dni.AsSpan(0, Math.Min(4, fila.Dni.Length)), " ****");
+        return new DetalleContingenciaResponse(fila.IdContingencia, fila.FolioBitacora,
+            fila.TipoEvento == Domain.Auditoria.TipoEvento.Ingreso ? "INGRESO" : "RETIRO", fila.EstadoConciliacion, fila.DniPresentado,
+            parcial, fila.Titular, fila.CorreoInstitucional, fila.Bicicleta, fila.NumeroMarco, fila.HoraIngresoManual, fila.Vigilante,
+            fila.MotivoObservacion);
+    }
 
     public Task<string> ConciliarAsync(Guid idContingencia, Guid idSupervisor, bool confirmadoTitular, string? motivo, CancellationToken ct) =>
         db.Database.SqlQuery<string>($"""
