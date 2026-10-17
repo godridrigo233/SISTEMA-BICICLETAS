@@ -3,10 +3,12 @@ using Bicicletas.Api;
 using Bicicletas.Api.Endpoints;
 using Bicicletas.Api.Seguridad;
 using Bicicletas.Application.Autenticacion;
+using Bicicletas.Application.Contingencias;
 using Bicicletas.Application.Estudiantes;
 using Bicicletas.Application.Garita;
 using Bicicletas.Application.Monitoreo;
 using Bicicletas.Application.Retiros;
+using Bicicletas.Application.Usuarios;
 using Bicicletas.Domain.Biometria;
 using Bicicletas.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -30,6 +32,8 @@ builder.Services.AddScoped<AutorizarRetiroService>();
 builder.Services.AddScoped<EstudianteService>();
 builder.Services.AddScoped<RetiroManualService>();
 builder.Services.AddScoped<MonitoreoService>();
+builder.Services.AddScoped<ContingenciaService>();
+builder.Services.AddScoped<GestionUsuariosService>();
 // θ calibrado con el Dataset Primario Local UCSM; se recalibra sin recompilar (Biometria__UmbralTheta).
 builder.Services.AddSingleton(sp => new PoliticaBiometrica(
     sp.GetRequiredService<IConfiguration>().GetValue("Biometria:UmbralTheta", PoliticaBiometrica.UmbralPorDefecto)));

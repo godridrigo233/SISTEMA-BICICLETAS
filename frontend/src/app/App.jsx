@@ -5,13 +5,12 @@ import PanelGarita from '../features/garita/PanelGarita';
 import RegistroEnrolamiento from '../features/enrolamiento/RegistroEnrolamiento';
 import HistorialPage from '../features/historial/HistorialPage';
 import MonitoreoPage from '../features/monitoreo/MonitoreoPage';
+import ConsolaContingencias from '../features/contingencias/ConsolaContingencias';
+import GestionUsuarios from '../features/usuarios/GestionUsuarios';
 import { SesionProvider } from '../features/auth/SesionContext';
 import Plantilla from './Plantilla';
 import ProtectedRoute from './ProtectedRoute';
 import { ROL } from './rutasPorRol';
-
-// Pantallas que se incorporan en los siguientes bloques (W2–W7).
-const Pendiente = ({ nombre }) => <main className="contenido"><h1>{nombre}</h1><p>En construcción.</p></main>;
 
 /** Enrutador RBAC (P07, Figura 1): cada rol solo navega a sus pantallas; la API aplica el control real. */
 export default function App() {
@@ -30,11 +29,11 @@ export default function App() {
               <Route path="/garita/control-acceso" element={<PanelGarita />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.SUPERVISOR, ROL.ADMINISTRADOR]} />}>
-              <Route path="/supervisor/contingencias" element={<Pendiente nombre="W3 · Consola de Regularización" />} />
+              <Route path="/supervisor/contingencias" element={<ConsolaContingencias />} />
               <Route path="/gestion/monitoreo" element={<MonitoreoPage />} />
             </Route>
             <Route element={<ProtectedRoute rolesPermitidos={[ROL.ADMINISTRADOR]} />}>
-              <Route path="/admin/usuarios" element={<Pendiente nombre="W7 · Usuarios y Roles" />} />
+              <Route path="/admin/usuarios" element={<GestionUsuarios />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />

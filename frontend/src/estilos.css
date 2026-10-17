@@ -59,3 +59,13 @@ main.contenido { padding: 24px; }
 .paginador { justify-content: center; align-items: center; margin: 12px 0; }
 .modal-fondo { position: fixed; inset: 0; background: rgb(0 0 0 / 45%); display: grid; place-items: center; padding: 16px; }
 .modal { max-width: 420px; text-align: center; }
+.etiqueta { border: 1px solid var(--gris-borde); border-radius: 999px; padding: 4px 12px; font-size: .9rem; background: #fff; }
+.boton-enlace { background: none; border: none; color: var(--verde-ucsm); text-decoration: underline; cursor: pointer; font-size: 1rem; }
+.fila-error td { background: #fdf0f0; }
+.modal-ancho { max-width: 900px; text-align: left; max-height: 90vh; overflow-y: auto; }
+.opcion { margin-bottom: 8px; }
+.campo-ancho { flex: 2; min-width: 260px; }
+.ancho-completo { flex-basis: 100%; }
+.codigo { font-family: ui-monospace, monospace; font-size: 1.1rem; }
+textarea { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--gris-borde); border-radius: 6px; font: inherit; }
+fieldset { border: 1px solid var(--gris-borde); border-radius: 8px; margin: 12px 0; }
