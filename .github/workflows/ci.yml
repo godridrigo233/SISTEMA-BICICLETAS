@@ -8,6 +8,7 @@ on:
     branches: ['**']
   pull_request:
     branches: [main]
+  workflow_dispatch:      # permite relanzar el pipeline (y el análisis SonarCloud) desde la pestaña Actions
 
 permissions:
   contents: read
@@ -72,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_ORG: ${{ vars.SONAR_ORGANIZATION }}
+      SONAR_ORG: ${{ vars.SONAR_ORGANIZATION || 'godridrigo233' }}
       ConnectionStrings__Pruebas: Host=localhost;Port=5432;Database=bicicletas_ci;Username=ci;Password=ci
     services:
       postgres:
@@ -111,13 +112,20 @@ jobs:
         if: env.SONAR_TOKEN != ''
         run: |
           dotnet tool install --global dotnet-sonarscanner
-          dotnet sonarscanner begin \
+          echo "::warning title=SonarCloud::Organización '${SONAR_ORG}' (longitud ${#SONAR_ORG}); token de ${#SONAR_TOKEN} caracteres"
+          # Si falla, los mensajes ERROR del escáner se muestran como anotaciones del run.
+          if ! dotnet sonarscanner begin \
             /k:"${SONAR_ORG}_sistema-bicicletas-api" \
             /o:"${SONAR_ORG}" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.cs.opencover.reportsPaths="backend/TestResults/**/coverage.opencover.xml" \
-            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx"
+            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx" > sonar-begin.log 2>&1; then
+            cat sonar-begin.log
+            grep -v '^\s*$' sonar-begin.log | tail -12 | sed 's/^/::error title=SonarCloud::/'
+            exit 1
+          fi
+          cat sonar-begin.log
 
       - name: Compilar
         run: dotnet build backend/BicicletasUcsm.sln --no-restore -c Release
@@ -206,8 +214,8 @@ jobs:
         with:
           projectBaseDir: frontend
           args: >
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.projectKey=${{ vars.SONAR_ORGANIZATION }}_sistema-bicicletas-web
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || 'godridrigo233' }}
+            -Dsonar.projectKey=${{ vars.SONAR_ORGANIZATION || 'godridrigo233' }}_sistema-bicicletas-web
 
   # ---------------------------------------------------------------------------
   # 4. (Opcional) Despliegue: solo en main y solo si todo lo anterior pasó.
