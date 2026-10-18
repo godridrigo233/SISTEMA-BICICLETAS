@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Bike, CheckCircle2, Eye, EyeOff, Lock, LogIn, Mail, ShieldCheck } from 'lucide-react';
 import { NOMBRE_SISTEMA } from '../../app/constantes';
 import { RUTA_INICIO_POR_ROL } from '../../app/rutasPorRol';
 import { mensajeDeError } from '../../services/apiClient';
 import { iniciarSesion } from '../../services/authService';
+import { iniciarPrecalentamiento } from '../../services/precalentador';
 import { useSesion } from './SesionContext';
 
 // Personal: @ucsm.edu.pe · Estudiantes: @estudiante.ucsm.edu.pe
@@ -19,7 +20,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [verPassword, setVerPassword] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [esperaProlongada, setEsperaProlongada] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    iniciarPrecalentamiento();
+  }, []);
 
   if (sesion && !sesion.debeCambiarPassword) return <Navigate to={RUTA_INICIO_POR_ROL[sesion.idRol]} replace />;
 
@@ -30,15 +36,21 @@ export default function LoginPage() {
     evento.preventDefault();
     if (!puedeEnviar) return;
     setEnviando(true);
+    setEsperaProlongada(false);
     setError('');
+    const temporizador = setTimeout(() => setEsperaProlongada(true), 2500);
     try {
       const respuesta = await iniciarSesion(correo.trim(), password);
+      clearTimeout(temporizador);
       abrirSesion(respuesta, password);
       navegar(respuesta.debeCambiarPassword ? '/cambiar-password' : RUTA_INICIO_POR_ROL[respuesta.idRol], { replace: true });
     } catch (e) {
+      clearTimeout(temporizador);
       setError(mensajeDeError(e, 'Credenciales inválidas.'));
     } finally {
+      clearTimeout(temporizador);
       setEnviando(false);
+      setEsperaProlongada(false);
     }
   }
 
@@ -156,6 +168,12 @@ export default function LoginPage() {
               <LogIn size={18} aria-hidden="true" />
               {enviando ? 'Ingresando…' : 'Ingresar'}
             </button>
+
+            {esperaProlongada && enviando && (
+              <p className="aviso" role="status" style={{ marginTop: 8, fontSize: '0.85rem' }}>
+                Conectando con el servidor en la nube… Esto puede tomar unos segundos si el servicio estaba en reposo.
+              </p>
+            )}
 
             <a className="enlace" href="mailto:soporte.bicicletas@ucsm.edu.pe" style={{ textAlign: 'center', fontSize: '0.875rem', marginTop: 4 }}>
               ¿Problemas para ingresar? Contacte a Soporte
