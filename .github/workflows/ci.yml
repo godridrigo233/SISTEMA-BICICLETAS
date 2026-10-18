@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_ORG: ${{ vars.SONAR_ORGANIZATION }}
+      SONAR_ORG: ${{ vars.SONAR_ORGANIZATION || 'godridrigo233' }}
       ConnectionStrings__Pruebas: Host=localhost;Port=5432;Database=bicicletas_ci;Username=ci;Password=ci
     services:
       postgres:
@@ -214,8 +214,8 @@ jobs:
         with:
           projectBaseDir: frontend
           args: >
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.projectKey=${{ vars.SONAR_ORGANIZATION }}_sistema-bicicletas-web
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || 'godridrigo233' }}
+            -Dsonar.projectKey=${{ vars.SONAR_ORGANIZATION || 'godridrigo233' }}_sistema-bicicletas-web
 
   # ---------------------------------------------------------------------------
   # 4. (Opcional) Despliegue: solo en main y solo si todo lo anterior pasó.
