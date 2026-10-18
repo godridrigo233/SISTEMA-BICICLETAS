@@ -50,13 +50,17 @@ public sealed class AutorizarRetiroService(
                 solicitud.LatenciaMs, reloj.GetUtcNow().UtcDateTime));
 
             await unidad.GuardarAsync(ct);
+            // Protocolo ante rechazos consecutivos (P05): se cuenta dentro de la misma transacción.
+            int rechazos = coincide ? 0 : await auditoria.ContarRechazosConsecutivosAsync(bicicleta.IdEstudiante, ct);
             await transaccion.ConfirmarAsync(ct);   // COMMIT: estado y auditoría juntos, o ninguno
 
             return new RetiroResponse(
                 coincide ? "AUTORIZADO" : "DENEGADO",
                 bicicleta.Estado == EstadoBicicleta.Dentro ? "DENTRO" : "FUERA",
                 Math.Round(distancia, 4),
-                politica.UmbralTheta);
+                politica.UmbralTheta,
+                rechazos,
+                PoliticaRevision.RequiereRevision(rechazos));
         }
         finally
         {

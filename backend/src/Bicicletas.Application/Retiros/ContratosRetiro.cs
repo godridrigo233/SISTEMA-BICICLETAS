@@ -12,7 +12,8 @@ public sealed record RetiroRequest(
     [Range(0, 60_000)] int? LatenciaMs);
 
 /// <summary>Resultado de negocio: AUTORIZADO o DENEGADO (ambos auditados).</summary>
-public sealed record RetiroResponse(string Resultado, string EstadoActualizado, double DistanciaEuclidiana, double UmbralTheta);
+public sealed record RetiroResponse(string Resultado, string EstadoActualizado, double DistanciaEuclidiana, double UmbralTheta,
+    int RechazosConsecutivos = 0, bool AlertaRevisionBiometrica = false);
 
 /// <summary>Acceso al descriptor de referencia del titular (lo implementa Infrastructure).</summary>
 public interface IDescriptorRepositorio

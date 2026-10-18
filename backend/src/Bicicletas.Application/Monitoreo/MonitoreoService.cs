@@ -17,8 +17,16 @@ public sealed class MonitoreoService(IMonitoreoRepositorio repositorio, TimeProv
     private static readonly SearchValues<char> InicioDeFormula = SearchValues.Create("=+-@\t\r");
     private static readonly SearchValues<char> RequiereComillas = SearchValues.Create(";\"\n\r");
 
-    public Task<ResumenMonitoreoResponse> ResumenAsync(CancellationToken ct) =>
-        repositorio.ResumenAsync(HoraPeru.InicioDelDiaUtc(HoraPeru.Hoy(reloj)), ct);
+    public async Task<ResumenMonitoreoResponse> ResumenAsync(CancellationToken ct)
+    {
+        ResumenMonitoreoResponse resumen = await repositorio.ResumenAsync(HoraPeru.InicioDelDiaUtc(HoraPeru.Hoy(reloj)), ct);
+        int alertas = (await repositorio.AlertasBiometricasAsync(Garita.PoliticaRevision.RechazosParaAlerta, ct)).Count;
+        return resumen with { AlertasRevisionBiometrica = alertas };
+    }
+
+    /// <summary>Protocolo ante rechazos consecutivos (P05): titulares que requieren revisión biométrica.</summary>
+    public Task<IReadOnlyList<AlertaBiometricaResponse>> AlertasBiometricasAsync(CancellationToken ct) =>
+        repositorio.AlertasBiometricasAsync(Garita.PoliticaRevision.RechazosParaAlerta, ct);
 
     public async Task<Pagina<EventoMonitoreoResponse>> ConsultarAsync(FiltroMonitoreo filtro, CancellationToken ct)
     {

@@ -3,6 +3,9 @@ import { limpiar } from './estudianteService';
 
 export const obtenerResumen = async () => (await api.get('/monitoreo/resumen')).data;
 
+/** Titulares con 3 o más retiros denegados consecutivos (protocolo de revisión biométrica, P05). */
+export const obtenerAlertasBiometricas = async () => (await api.get('/monitoreo/alertas-biometricas')).data;
+
 export const consultarEventos = async (filtros) => (await api.get('/monitoreo/eventos', { params: limpiar(filtros) })).data;
 
 /** Descarga el CSV generado por la API con los mismos filtros de la tabla. */

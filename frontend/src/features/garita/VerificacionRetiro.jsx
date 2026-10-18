@@ -153,6 +153,15 @@ export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, al
               Retiro denegado: el rostro no coincide ({resultado.distanciaEuclidiana.toFixed(2)}). La bicicleta permanece DENTRO; el intento quedó registrado.
             </span>
           </p>
+          {resultado.alertaRevisionBiometrica && (
+            <p className="aviso" role="alert">
+              <ShieldAlert size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
+              <span>
+                Alerta de revisión biométrica: {resultado.rechazosConsecutivos} rechazos consecutivos para este titular. Verifique su
+                identidad con DNI (derive al supervisor) y recomiende actualizar su enrolamiento facial en «Mi registro».
+              </span>
+            </p>
+          )}
           <div className="con-boton">
             <button
               type="button"

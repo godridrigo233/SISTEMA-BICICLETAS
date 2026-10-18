@@ -2,12 +2,13 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MonitoreoPage from './MonitoreoPage';
-import { consultarEventos, exportarCsv, obtenerResumen } from '../../services/monitoreoService';
+import { consultarEventos, exportarCsv, obtenerAlertasBiometricas, obtenerResumen } from '../../services/monitoreoService';
 
-vi.mock('../../services/monitoreoService', () => ({ obtenerResumen: vi.fn(), consultarEventos: vi.fn(), exportarCsv: vi.fn() }));
+vi.mock('../../services/monitoreoService', () => ({ obtenerResumen: vi.fn(), consultarEventos: vi.fn(), exportarCsv: vi.fn(), obtenerAlertasBiometricas: vi.fn() }));
 
 describe('W6 · Monitoreo y Reportes', () => {
   beforeEach(() => {
+    vi.mocked(obtenerAlertasBiometricas).mockResolvedValue([]);
     vi.mocked(obtenerResumen).mockResolvedValue({ bicicletasDentro: 12, ingresosHoy: 30, retirosHoy: 18, rechazosHoy: 2, movimientosManualesHoy: 3, contingenciasPendientes: 1, latenciaPromedioMsHoy: 1450 });
     vi.mocked(consultarEventos).mockResolvedValue({
       total: 1, numeroPagina: 1, tamanoPagina: 20,
@@ -30,5 +31,15 @@ describe('W6 · Monitoreo y Reportes', () => {
     expect(consultarEventos).toHaveBeenLastCalledWith(expect.objectContaining({ resultado: 'MANUAL', pagina: 1 }));
     await usuario.click(screen.getByRole('button', { name: 'Exportar CSV' }));
     expect(exportarCsv).toHaveBeenCalledWith(expect.objectContaining({ resultado: 'MANUAL' }));
+  });
+
+  it('muestra las alertas de revisión biométrica (3 rechazos consecutivos)', async () => {
+    vi.mocked(obtenerAlertasBiometricas).mockResolvedValue([
+      { codigoUniversitario: '2020123456', estudiante: 'JUAN PEREZ', rechazosConsecutivos: 3, ultimoIntentoUtc: '2026-10-17T15:00:00Z' },
+    ]);
+    render(<MonitoreoPage />);
+    const seccion = await screen.findByRole('region', { name: 'Alertas de revisión biométrica' });
+    expect(seccion).toHaveTextContent('JUAN PEREZ');
+    expect(seccion).toHaveTextContent('2020123456');
   });
 });
