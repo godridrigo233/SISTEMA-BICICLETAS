@@ -1348,6 +1348,15 @@ fieldset legend {
 /* --------------------------------------------------------------------------
    17. ANIMACIONES Y ACCESIBILIDAD (PREFERS-REDUCED-MOTION)
    -------------------------------------------------------------------------- */
+.girando {
+  animation: girar 1s linear infinite;
+}
+
+@keyframes girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
