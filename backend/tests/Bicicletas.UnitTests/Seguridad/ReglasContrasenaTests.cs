@@ -23,6 +23,7 @@ public class ReglasContrasenaTests
     [Fact]
     public void Validar_ContrasenaValida_NoLanza()
     {
-        ReglasContrasena.Validar("MiBicicleta2026", "Temporal2026x");
+        Exception? excepcion = Record.Exception(() => ReglasContrasena.Validar("MiBicicleta2026", "Temporal2026x"));
+        Assert.Null(excepcion);
     }
 }

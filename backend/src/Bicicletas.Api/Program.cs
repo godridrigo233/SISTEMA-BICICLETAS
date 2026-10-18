@@ -12,6 +12,7 @@ using Bicicletas.Application.Usuarios;
 using Bicicletas.Domain.Biometria;
 using Bicicletas.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -21,8 +22,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Render indica el puerto en la variable PORT; en local se usa la configuración por defecto.
 string? puerto = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrWhiteSpace(puerto))
-    builder.WebHost.UseUrls($"http://0.0.0.0:{puerto}");
+if (int.TryParse(puerto, out int puertoInt))
+    builder.WebHost.ConfigureKestrel(opciones => opciones.ListenAnyIP(puertoInt));
 
 builder.Services.AddInfraestructura();
 builder.Services.AddSingleton(TimeProvider.System);
@@ -92,5 +93,3 @@ app.MapControllers();
 
 await app.RunAsync();
 
-/// <summary>Expone la clase Program a las pruebas de integración (WebApplicationFactory).</summary>
-public partial class Program;
