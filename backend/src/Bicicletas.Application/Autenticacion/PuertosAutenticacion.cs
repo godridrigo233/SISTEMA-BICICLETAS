@@ -9,6 +9,9 @@ public interface IUsuarioRepositorio
 
     Task<Usuario?> ObtenerPorIdAsync(Guid idUsuario, CancellationToken ct);
 
+    /// <summary>Código universitario y DNI del padrón para validar la activación de la cuenta.</summary>
+    Task<(string Codigo, string Dni)?> ObtenerDatosPadronAsync(Guid idEstudiante, CancellationToken ct);
+
     Task GuardarCambiosAsync(CancellationToken ct);
 }
 
