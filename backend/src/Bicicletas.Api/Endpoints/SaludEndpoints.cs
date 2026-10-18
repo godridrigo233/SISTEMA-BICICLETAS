@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Bicicletas.Api.Endpoints;
 
 /// <summary>
-/// GET /health: lo consulta el monitor externo cada 10 minutos para evitar la suspensión de la
+/// GET y HEAD /health: lo consulta el monitor externo (UptimeRobot usa HEAD en el plan gratuito) para evitar la suspensión de la
 /// instancia gratuita de Render (CC-09) y para verificar la conexión con Supabase. Si la conexión
 /// falla, la causa se registra en los logs del servidor (sin la cadena de conexión) y la respuesta
 /// pública solo indica SIN_CONEXION.
@@ -14,7 +14,7 @@ public static partial class SaludEndpoints
 {
     public static IEndpointRouteBuilder MapSalud(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/health", async (IServiceProvider servicios, ILoggerFactory logs, CancellationToken ct) =>
+        app.MapMethods("/health", [HttpMethods.Get, HttpMethods.Head], async (IServiceProvider servicios, ILoggerFactory logs, CancellationToken ct) =>
         {
             bool conectado = await ProbarConexionAsync(servicios, logs.CreateLogger("Salud"), ct);
             return conectado
