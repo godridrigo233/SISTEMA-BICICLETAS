@@ -11,12 +11,8 @@ export function despertarApi(urlApi = import.meta.env.VITE_API_URL) {
   const urlBase = urlApi.replace(/\/api\/v1\/?$/, '');
   const urlSalud = `${urlBase}/health`;
 
-  try {
-    fetch(urlSalud, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(() => {});
-    fetch(`${urlApi}/garita/ultimo-dia`, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(() => {});
-  } catch {
-    // Silencioso por diseño: no interrumpe el hilo principal ni genera errores en la consola
-  }
+  void fetch(urlSalud, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+  void fetch(`${urlApi}/garita/ultimo-dia`, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(() => {});
 }
 
 export function iniciarPrecalentamiento(urlApi = import.meta.env.VITE_API_URL) {
