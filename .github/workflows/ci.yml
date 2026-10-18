@@ -112,13 +112,20 @@ jobs:
         if: env.SONAR_TOKEN != ''
         run: |
           dotnet tool install --global dotnet-sonarscanner
-          dotnet sonarscanner begin \
+          echo "Organización SonarCloud: '${SONAR_ORG}' (longitud ${#SONAR_ORG})"
+          # Si falla, los mensajes ERROR del escáner se muestran como anotaciones del run.
+          if ! dotnet sonarscanner begin \
             /k:"${SONAR_ORG}_sistema-bicicletas-api" \
             /o:"${SONAR_ORG}" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.cs.opencover.reportsPaths="backend/TestResults/**/coverage.opencover.xml" \
-            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx"
+            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx" > sonar-begin.log 2>&1; then
+            cat sonar-begin.log
+            grep -iE "error|unauthorized|not authorized|not found|forbidden" sonar-begin.log | head -8 | sed 's/^/::error title=SonarCloud::/'
+            exit 1
+          fi
+          cat sonar-begin.log
 
       - name: Compilar
         run: dotnet build backend/BicicletasUcsm.sln --no-restore -c Release
