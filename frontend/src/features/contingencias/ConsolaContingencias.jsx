@@ -1,9 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  CheckCircle2,
+  Clock,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Filter,
+  Plus,
+  RefreshCw,
+  Search,
+  Upload,
+  UserCheck,
+  XCircle,
+} from 'lucide-react';
 import Confirmacion from '../../componentes/Confirmacion';
 import { fechaPeru } from '../../componentes/formato';
 import { mensajeDeError } from '../../services/apiClient';
 import {
-  conciliar, conciliarLote, importarCsv, listarPendientes, listarVigilantes, previsualizarCsv, previsualizarFila, registrarFila,
+  conciliar,
+  conciliarLote,
+  importarCsv,
+  listarPendientes,
+  listarVigilantes,
+  previsualizarCsv,
+  previsualizarFila,
+  registrarFila,
 } from '../../services/contingenciasService';
 import RevisarObservado from './RevisarObservado';
 
@@ -26,7 +51,7 @@ function descargarPlantilla() {
   URL.revokeObjectURL(enlace.href);
 }
 
-/** W3 · Consola de Regularización (CU-06 con CC-08 y CC-10). */
+/** W3 · Consola de Regularización (CU-06 con CC-08 y CC-10). Secciones 1-2-3 numeradas institucionales. */
 export default function ConsolaContingencias() {
   const archivo = useRef(null);
   const [contenido, setContenido] = useState('');
@@ -38,7 +63,7 @@ export default function ConsolaContingencias() {
   const [pendientes, setPendientes] = useState([]);
   const [mensaje, setMensaje] = useState(null);
   const [ocupado, setOcupado] = useState(false);
-  const [confirmar, setConfirmar] = useState(null);   // { tipo: 'lote' } | { tipo: 'fila', item }
+  const [confirmar, setConfirmar] = useState(null); // { tipo: 'lote' } | { tipo: 'fila', item }
   const [revisando, setRevisando] = useState(null);
 
   const avisar = (tipo, texto) => setMensaje({ tipo, texto });
@@ -122,14 +147,20 @@ export default function ConsolaContingencias() {
     try {
       if (confirmar.tipo === 'lote') {
         const r = await conciliarLote();
-        avisar(r.observados || r.conflictos ? 'aviso' : 'exito',
-          `Lote procesado: ${r.conciliados} CONCILIADO · ${r.observados} OBSERVADO · ${r.conflictos} conflictos. Los observados se resuelven con «Revisar»; los conflictos quedan PENDIENTE con el motivo.`);
+        avisar(
+          r.observados || r.conflictos ? 'aviso' : 'exito',
+          `Lote procesado: ${r.conciliados} CONCILIADO · ${r.observados} OBSERVADO · ${r.conflictos} conflictos. Los observados se resuelven con «Revisar»; los conflictos quedan PENDIENTE con el motivo.`,
+        );
       } else {
         const r = await conciliar(confirmar.item.idContingencia);
-        avisar(r.resultado === 'CONCILIADO' ? 'exito' : 'aviso',
-          r.resultado === 'CONCILIADO' ? `Folio ${r.folio} conciliado.`
-            : r.resultado === 'OBSERVADO' ? `Caso OBSERVADO: el DNI anotado en el folio ${r.folio} no corresponde al titular. Resuélvalo con «Revisar».`
-              : `No se pudo conciliar el folio ${r.folio}: el estado de la bicicleta no permite el movimiento. Verifique el folio.`);
+        avisar(
+          r.resultado === 'CONCILIADO' ? 'exito' : 'aviso',
+          r.resultado === 'CONCILIADO'
+            ? `Folio ${r.folio} conciliado.`
+            : r.resultado === 'OBSERVADO'
+              ? `Caso OBSERVADO: el DNI anotado en el folio ${r.folio} no corresponde al titular. Resuélvalo con «Revisar».`
+              : `No se pudo conciliar el folio ${r.folio}: el estado de la bicicleta no permite el movimiento. Verifique el folio.`,
+        );
       }
       await cargarPendientes();
     } catch (e) {
@@ -147,132 +178,323 @@ export default function ConsolaContingencias() {
   return (
     <main className="contenido">
       <div className="con-boton encabezado">
-        <h1>Consola de Regularización (Contingencias)</h1>
-        <span className="etiqueta">● Modo: registro diferido</span>
-      </div>
-      {mensaje && <p className={mensaje.tipo} role={mensaje.tipo === 'alerta' ? 'alert' : 'status'}>{mensaje.texto}</p>}
-
-      <section className="ficha" aria-labelledby="t-importar">
-        <div className="con-boton encabezado">
-          <h2 id="t-importar">1. Importar el archivo de la garita (CSV)</h2>
-          <button type="button" className="boton-enlace" onClick={descargarPlantilla}>Descargar plantilla</button>
+        <div>
+          <h1>Consola de Regularización (Contingencias)</h1>
+          <p className="ayuda" style={{ marginTop: -8 }}>
+            Protocolo de conciliación de bitácoras físicas ante interrupciones de conectividad o energía
+          </p>
         </div>
+        <span className="etiqueta badge-pendiente" style={{ padding: '6px 14px' }}>
+          <Clock size={16} aria-hidden="true" />
+          ● Modo: registro diferido
+        </span>
+      </div>
+
+      {mensaje && (
+        <p className={mensaje.tipo} role={mensaje.tipo === 'alerta' ? 'alert' : 'status'}>
+          {mensaje.tipo === 'exito' && <CheckCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />}
+          {mensaje.tipo === 'aviso' && <AlertTriangle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />}
+          {mensaje.tipo === 'alerta' && <XCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />}
+          <span>{mensaje.texto}</span>
+        </p>
+      )}
+
+      {/* SECCIÓN 1: IMPORTAR CSV DE GARITA */}
+      <section className="ficha" aria-labelledby="t-importar" style={{ borderLeft: '4px solid var(--verde-ucsm)' }}>
+        <div className="con-boton encabezado">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="paso-numero" style={{ background: 'var(--verde-ucsm)', color: '#ffffff' }}>1</div>
+            <h2 id="t-importar" style={{ margin: 0, paddingBottom: 0, borderBottom: 'none' }}>
+              1. Importar el archivo de la garita (CSV)
+            </h2>
+          </div>
+          <button type="button" className="boton-enlace" onClick={descargarPlantilla} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Download size={16} aria-hidden="true" />
+            Descargar plantilla
+          </button>
+        </div>
+
         <div className="campo">
           <label htmlFor="csv">Archivo CSV exportado del Excel de la garita *</label>
-          <div className="con-boton">
-            <input id="csv" ref={archivo} type="file" accept=".csv,text/csv" onChange={elegirArchivo} />
-            <button type="button" className="boton" onClick={validarArchivo} disabled={!contenido || ocupado}>Validar archivo</button>
+          <div className="con-boton" style={{ flexWrap: 'nowrap' }}>
+            <input
+              id="csv"
+              ref={archivo}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={elegirArchivo}
+              style={{ padding: '8px 12px' }}
+            />
+            <button
+              type="button"
+              className="boton"
+              onClick={validarArchivo}
+              disabled={!contenido || ocupado}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              <FileSpreadsheet size={18} aria-hidden="true" />
+              Validar archivo
+            </button>
           </div>
-          <p className="ayuda">Columnas: folio; fecha_hora; tipo; codigo (QR o N.º de marco); dni (solo retiro); vigilante. Separador «;» o «,», UTF-8.</p>
+          <p className="ayuda">
+            Columnas: folio; fecha_hora; tipo; codigo (QR o N.º de marco); dni (solo retiro); vigilante. Separador «;» o «,», UTF-8.
+          </p>
         </div>
+
         {previa && (
-          <>
-            <h3>Vista previa — {nombreArchivo}</h3>
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--gris-200)' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <FileText size={18} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
+              Vista previa — {nombreArchivo}
+            </h3>
             <div className="tabla-desplazable">
               <table className="tabla">
-                <thead><tr><th>Fila</th><th>Folio</th><th>Tipo</th><th>Bicicleta (autocompletada)</th><th>Fecha y hora</th><th>DNI</th><th>Validación</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Fila</th>
+                    <th>Folio</th>
+                    <th>Tipo</th>
+                    <th>Bicicleta (autocompletada)</th>
+                    <th>Fecha y hora</th>
+                    <th>DNI</th>
+                    <th>Validación</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {previa.map((f) => (
                     <tr key={f.fila} className={f.valida ? '' : 'fila-error'}>
-                      <td>{f.fila}</td><td>{f.folio}</td><td>{f.tipo}</td><td>{f.bicicleta ?? <em>[{f.codigo || 'sin código'}]</em>}</td>
-                      <td>{f.fechaHoraUtc ? fechaPeru(f.fechaHoraUtc) : '—'}</td><td>{f.dni ?? '—'}</td>
-                      <td>{f.valida ? '✓ Lista' : `✗ ${f.error}`}</td>
+                      <td><strong>{f.fila}</strong></td>
+                      <td>{f.folio}</td>
+                      <td>
+                        <span className={`etiqueta ${f.tipo === 'INGRESO' ? 'badge-dentro' : 'badge-manual'}`}>
+                          {f.tipo}
+                        </span>
+                      </td>
+                      <td>{f.bicicleta ?? <em>[{f.codigo || 'sin código'}]</em>}</td>
+                      <td>{f.fechaHoraUtc ? fechaPeru(f.fechaHoraUtc) : '—'}</td>
+                      <td>{f.dni ?? '—'}</td>
+                      <td>
+                        {f.valida ? (
+                          <span className="etiqueta badge-exitoso">✓ Lista</span>
+                        ) : (
+                          <span className="etiqueta badge-denegado">✗ {f.error}</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div className="con-boton">
-              <span className="etiqueta">{listas} listas · {previa.length - listas} con error</span>
-              <button type="button" className="boton" onClick={cancelarArchivo}>Cancelar</button>
-              <button type="button" className="boton boton-primario" onClick={agregarArchivo} disabled={listas === 0 || ocupado}>
+            <div className="con-boton" style={{ marginTop: 12 }}>
+              <span className="etiqueta" style={{ padding: '6px 12px' }}>
+                {listas} listas · {previa.length - listas} con error
+              </span>
+              <button type="button" className="boton" onClick={cancelarArchivo}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="boton boton-primario"
+                onClick={agregarArchivo}
+                disabled={listas === 0 || ocupado}
+              >
+                <Plus size={18} aria-hidden="true" />
                 Agregar {listas} filas al lote
               </button>
             </div>
-            <p className="ayuda">Las filas con error no se cargan: corríjalas en el archivo o con el registro manual.</p>
-          </>
+            <p className="ayuda" style={{ marginTop: 8 }}>
+              Las filas con error no se cargan: corríjalas en el archivo o con el registro manual.
+            </p>
+          </div>
         )}
       </section>
 
-      <form className="ficha" aria-labelledby="t-manual" onSubmit={agregarFila}>
-        <h2 id="t-manual">2. Registro manual (corrección o fila individual)</h2>
-        <div className="filtros">
-          <div className="campo"><label htmlFor="c-tipo">Tipo de movimiento *</label>
+      {/* SECCIÓN 2: REGISTRO MANUAL */}
+      <form className="ficha" aria-labelledby="t-manual" onSubmit={agregarFila} style={{ borderLeft: '4px solid #2b6cb0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div className="paso-numero" style={{ background: '#2b6cb0', color: '#ffffff' }}>2</div>
+          <h2 id="t-manual" style={{ margin: 0, paddingBottom: 0, borderBottom: 'none' }}>
+            2. Registro manual (corrección o fila individual)
+          </h2>
+        </div>
+
+        <div className="filtros" style={{ background: 'var(--gris-50)', padding: 16, margin: '0 0 16px' }}>
+          <div className="campo">
+            <label htmlFor="c-tipo">Tipo de movimiento *</label>
             <select id="c-tipo" className="selector" value={fila.tipo} onChange={cambiar('tipo')}>
-              <option value="INGRESO">Ingreso</option><option value="RETIRO">Retiro</option>
-            </select></div>
-          <div className="campo"><label htmlFor="c-codigo">Código QR o N.º de marco *</label>
-            <input id="c-codigo" maxLength={60} value={fila.codigo} onChange={cambiar('codigo')} /></div>
-          <div className="campo"><label htmlFor="c-folio">Folio de bitácora *</label>
-            <input id="c-folio" maxLength={20} value={fila.folio} onChange={cambiar('folio')} /></div>
-          <div className="campo"><label htmlFor="c-fecha">Fecha y hora del movimiento *</label>
+              <option value="INGRESO">Ingreso</option>
+              <option value="RETIRO">Retiro</option>
+            </select>
+          </div>
+          <div className="campo">
+            <label htmlFor="c-codigo">Código QR o N.º de marco *</label>
+            <input id="c-codigo" maxLength={60} value={fila.codigo} onChange={cambiar('codigo')} placeholder="UUID o serie de marco" />
+          </div>
+          <div className="campo">
+            <label htmlFor="c-folio">Folio de bitácora *</label>
+            <input id="c-folio" maxLength={20} value={fila.folio} onChange={cambiar('folio')} placeholder="Ej. B-0012" />
+          </div>
+          <div className="campo">
+            <label htmlFor="c-fecha">Fecha y hora del movimiento *</label>
             <input id="c-fecha" type="datetime-local" value={fila.fechaHora} onChange={cambiar('fechaHora')} />
-            <p className="ayuda">Sin fechas futuras; máximo 72 h atrás.</p></div>
+            <p className="ayuda">Sin fechas futuras; máximo 72 h atrás.</p>
+          </div>
           {fila.tipo === 'RETIRO' && (
-            <div className="campo"><label htmlFor="c-dni">DNI presentado *</label>
-              <input id="c-dni" inputMode="numeric" maxLength={8} value={fila.dni}
-                onChange={(e) => setFila((f) => ({ ...f, dni: e.target.value.replace(/\D/g, '') }))} /></div>
+            <div className="campo">
+              <label htmlFor="c-dni">DNI presentado *</label>
+              <input
+                id="c-dni"
+                inputMode="numeric"
+                maxLength={8}
+                value={fila.dni}
+                placeholder="8 dígitos"
+                onChange={(e) => setFila((f) => ({ ...f, dni: e.target.value.replace(/\D/g, '') }))}
+              />
+            </div>
           )}
-          <div className="campo"><label htmlFor="c-vigilante">Vigilante que anotó</label>
+          <div className="campo">
+            <label htmlFor="c-vigilante">Vigilante que anotó</label>
             <select id="c-vigilante" className="selector" value={fila.vigilante} onChange={cambiar('vigilante')}>
               <option value="">Seleccione…</option>
               {vigilantes.map((v) => <option key={v} value={v}>{v}</option>)}
-            </select></div>
+            </select>
+          </div>
         </div>
+
         {verificacion && (
           <p className={verificacion.valida ? 'aviso' : 'alerta'} role="status">
-            {verificacion.bicicleta ? `Verificación: ${verificacion.bicicleta} — Estado actual: ${verificacion.estadoBicicleta}. ` : ''}
-            {verificacion.valida ? 'En un retiro, al conciliar se compara el DNI presentado con el del titular.' : verificacion.error}
+            {verificacion.valida ? <CheckCircle2 size={18} aria-hidden="true" style={{ flexShrink: 0 }} /> : <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />}
+            <span>
+              {verificacion.bicicleta ? `Verificación: ${verificacion.bicicleta} — Estado actual: ${verificacion.estadoBicicleta}. ` : ''}
+              {verificacion.valida ? 'En un retiro, al conciliar se compara el DNI presentado con el del titular.' : verificacion.error}
+            </span>
           </p>
         )}
-        <button type="submit" className="boton boton-primario" disabled={!verificacion?.valida || ocupado}>Agregar al lote</button>
+
+        <button type="submit" className="boton boton-primario" disabled={!verificacion?.valida || ocupado}>
+          <Plus size={18} aria-hidden="true" />
+          Agregar al lote
+        </button>
       </form>
 
-      <section className="ficha" aria-labelledby="t-lote">
+      {/* SECCIÓN 3: LOTE PENDIENTE DE CONCILIACIÓN */}
+      <section className="ficha" aria-labelledby="t-lote" style={{ borderLeft: '4px solid #b45309' }}>
         <div className="con-boton encabezado">
-          <h2 id="t-lote">3. Lote pendiente de conciliación</h2>
-          <button type="button" className="boton boton-primario" disabled={nPendientes === 0 || ocupado} onClick={() => setConfirmar({ tipo: 'lote' })}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="paso-numero" style={{ background: '#b45309', color: '#ffffff' }}>3</div>
+            <h2 id="t-lote" style={{ margin: 0, paddingBottom: 0, borderBottom: 'none' }}>
+              3. Lote pendiente de conciliación
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="boton boton-primario"
+            disabled={nPendientes === 0 || ocupado}
+            onClick={() => setConfirmar({ tipo: 'lote' })}
+            style={{ padding: '10px 20px' }}
+          >
+            <CheckCircle size={18} aria-hidden="true" />
             Conciliar lote (orden cronológico)
           </button>
         </div>
-        {pendientes.length === 0 ? <p className="ayuda">No hay movimientos pendientes ni observados.</p> : (
+
+        {pendientes.length === 0 ? (
+          <p className="ayuda">No hay movimientos pendientes ni observados.</p>
+        ) : (
           <div className="tabla-desplazable">
             <table className="tabla">
-              <thead><tr><th>Folio</th><th>Origen</th><th>Tipo</th><th>Estudiante</th><th>Bicicleta</th><th>Fecha y hora manual</th><th>Estado</th><th>Acción</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Origen</th>
+                  <th>Tipo</th>
+                  <th>Estudiante</th>
+                  <th>Bicicleta</th>
+                  <th>Fecha y hora manual</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
               <tbody>
                 {pendientes.map((p) => (
                   <tr key={p.idContingencia}>
-                    <td>{p.folio}</td><td>{p.origen === 'CSV' ? 'CSV' : 'Manual'}</td><td>{p.tipo}</td><td>{p.estudiante}</td><td>{p.bicicleta}</td>
+                    <td><strong>{p.folio}</strong></td>
+                    <td><span className="etiqueta">{p.origen === 'CSV' ? 'CSV' : 'Manual'}</span></td>
+                    <td>
+                      <span className={`etiqueta ${p.tipo === 'INGRESO' ? 'badge-dentro' : 'badge-manual'}`}>
+                        {p.tipo}
+                      </span>
+                    </td>
+                    <td>{p.estudiante}</td>
+                    <td>{p.bicicleta}</td>
                     <td>{fechaPeru(p.horaManualUtc)}</td>
-                    <td>{p.estado === 'OBSERVADO' ? '⚠ OBSERVADO' : 'PENDIENTE'}{p.motivo && <><br /><small>{p.motivo}</small></>}</td>
-                    <td>{p.estado === 'OBSERVADO'
-                      ? <button type="button" className="boton" onClick={() => setRevisando(p.idContingencia)}>Revisar</button>
-                      : <button type="button" className="boton" onClick={() => setConfirmar({ tipo: 'fila', item: p })}>✓ Conciliar</button>}</td>
+                    <td>
+                      <span className={`etiqueta ${p.estado === 'OBSERVADO' ? 'badge-observado' : 'badge-pendiente'}`}>
+                        {p.estado === 'OBSERVADO' ? '⚠ OBSERVADO' : 'PENDIENTE'}
+                      </span>
+                      {p.motivo && <><br /><small style={{ color: 'var(--gris-600)' }}>{p.motivo}</small></>}
+                    </td>
+                    <td>
+                      {p.estado === 'OBSERVADO' ? (
+                        <button
+                          type="button"
+                          className="boton"
+                          style={{ borderColor: '#c2410c', color: '#c2410c' }}
+                          onClick={() => setRevisando(p.idContingencia)}
+                        >
+                          <Search size={16} aria-hidden="true" />
+                          Revisar
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="boton boton-primario"
+                          onClick={() => setConfirmar({ tipo: 'fila', item: p })}
+                        >
+                          ✓ Conciliar
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p className="ayuda">Mostrando {nPendientes} pendientes y {pendientes.length - nPendientes} observados.</p>
+        <p className="ayuda" style={{ marginTop: 12 }}>
+          Mostrando {nPendientes} pendientes y {pendientes.length - nPendientes} observados.
+        </p>
       </section>
 
+      {/* Diálogos de Confirmación y Revisión */}
       {confirmar && (
-        <Confirmacion ocupado={ocupado} alCancelar={() => setConfirmar(null)} alConfirmar={ejecutarConfirmacion}
-          titulo={confirmar.tipo === 'lote' ? `¿Conciliar los ${nPendientes} movimientos pendientes?` : '¿Seguro que desea conciliar este movimiento?'}>
-          <p>{confirmar.tipo === 'lote'
-            ? 'Se procesan en orden de fecha y hora (los ingresos antes que los retiros). Cada fila se concilia por separado: si una falla, las demás no se afectan.'
-            : `Folio ${confirmar.item.folio}: ${confirmar.item.tipo === 'INGRESO' ? 'la bicicleta pasará a DENTRO' : 'la bicicleta pasará a FUERA'}. Se registra en la auditoría como MANUAL.`}</p>
+        <Confirmacion
+          ocupado={ocupado}
+          alCancelar={() => setConfirmar(null)}
+          alConfirmar={ejecutarConfirmacion}
+          titulo={confirmar.tipo === 'lote' ? `¿Conciliar los ${nPendientes} movimientos pendientes?` : '¿Seguro que desea conciliar este movimiento?'}
+        >
+          <p>
+            {confirmar.tipo === 'lote'
+              ? 'Se procesan en orden de fecha y hora (los ingresos antes que los retiros). Cada fila se concilia por separado: si una falla, las demás no se afectan.'
+              : `Folio ${confirmar.item.folio}: ${confirmar.item.tipo === 'INGRESO' ? 'la bicicleta pasará a DENTRO' : 'la bicicleta pasará a FUERA'}. Se registra en la auditoría como MANUAL.`}
+          </p>
         </Confirmacion>
       )}
+
       {revisando && (
-        <RevisarObservado idContingencia={revisando} alCerrar={() => setRevisando(null)}
+        <RevisarObservado
+          idContingencia={revisando}
+          alCerrar={() => setRevisando(null)}
           alTerminar={async (r) => {
             setRevisando(null);
-            avisar(r.resultado === 'CONCILIADO' ? 'exito' : 'aviso',
-              r.resultado === 'CONCILIADO' ? `Folio ${r.folio} conciliado.` : `Folio ${r.folio} permanece OBSERVADO y se deriva a Seguridad.`);
+            avisar(
+              r.resultado === 'CONCILIADO' ? 'exito' : 'aviso',
+              r.resultado === 'CONCILIADO' ? `Folio ${r.folio} conciliado.` : `Folio ${r.folio} permanece OBSERVADO y se deriva a Seguridad.`,
+            );
             await cargarPendientes();
-          }} />
+          }}
+        />
       )}
     </main>
   );
