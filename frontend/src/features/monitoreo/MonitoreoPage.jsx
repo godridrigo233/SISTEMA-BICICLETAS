@@ -62,7 +62,7 @@ export default function MonitoreoPage() {
     }
   }, [aplicados, numero]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { void cargar(); }, [cargar]);
 
   const rangoInvalido = filtros.desde && filtros.hasta && filtros.desde > filtros.hasta;
   const cambiar = (campo) => (e) => setFiltros((f) => ({ ...f, [campo]: e.target.value }));

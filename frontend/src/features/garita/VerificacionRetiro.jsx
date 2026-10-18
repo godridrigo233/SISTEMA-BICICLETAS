@@ -47,7 +47,7 @@ export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, al
         }
       }
     }
-    preparar();
+    void preparar();
     return () => {
       activo = false;
       flujo.current?.getTracks().forEach((pista) => pista.stop());

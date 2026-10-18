@@ -19,5 +19,5 @@ public sealed class ContingenciaIngreso
     public long? IdAuditoria { get; private set; }
     public string OrigenCarga { get; private set; } = "MANUAL";
 
-    private ContingenciaIngreso() { }   // requerido por EF Core
+    internal ContingenciaIngreso() { }   // lo materializa EF Core (las filas las crean las funciones SQL de V003)
 }

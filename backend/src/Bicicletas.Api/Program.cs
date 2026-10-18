@@ -90,7 +90,7 @@ app.UseAuthorization();
 app.MapSalud();
 app.MapControllers();
 
-app.Run();
+await app.RunAsync();
 
 /// <summary>Expone la clase Program a las pruebas de integración (WebApplicationFactory).</summary>
 public partial class Program;

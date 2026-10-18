@@ -120,7 +120,8 @@ jobs:
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.cs.opencover.reportsPaths="backend/TestResults/**/coverage.opencover.xml" \
-            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx" > sonar-begin.log 2>&1; then
+            /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx" \
+            /d:sonar.exclusions="frontend/**,database/**" > sonar-begin.log 2>&1; then
             cat sonar-begin.log
             grep -v '^\s*$' sonar-begin.log | tail -12 | sed 's/^/::error title=SonarCloud::/'
             exit 1
@@ -194,7 +195,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Instalar dependencias
-        run: npm ci
+        run: npm ci --ignore-scripts   # sin scripts de instalación de terceros (cadena de suministro)
 
       - name: Lint (ESLint)
         run: npm run lint
@@ -210,7 +211,7 @@ jobs:
 
       - name: Análisis SonarCloud
         if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v8
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9   # v8.3.0 (SHA fijo, cadena de suministro)
         with:
           projectBaseDir: frontend
           args: >
