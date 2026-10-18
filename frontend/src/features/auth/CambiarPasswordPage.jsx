@@ -40,7 +40,7 @@ export default function CambiarPasswordPage() {
     try {
       const respuesta = await cambiarPassword(sesion.token, passwordTemporal.current, nueva);
       abrirSesion(respuesta, null);
-      navegar(RUTA_INICIO_POR_ROL[respuesta.idRol], { replace: true });
+      await navegar(RUTA_INICIO_POR_ROL[respuesta.idRol], { replace: true });
     } catch (e) {
       setError(mensajeDeError(e, 'No se pudo cambiar la contraseña.'));
     } finally {
@@ -51,7 +51,7 @@ export default function CambiarPasswordPage() {
   return (
     <div className="pantalla-centrada">
       <div style={{ maxWidth: 480, width: '100%' }}>
-        <form className="tarjeta" onSubmit={enviar} noValidate>
+        <form className="tarjeta" onSubmit={(e) => { void enviar(e); }} noValidate>
           <div className="tarjeta-encabezado" style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
             <div className="logo-icono-contenedor" style={{ background: 'rgba(255,255,255,0.2)' }}>
               <KeyRound size={24} aria-hidden="true" />

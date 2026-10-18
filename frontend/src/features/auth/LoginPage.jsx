@@ -43,7 +43,7 @@ export default function LoginPage() {
       const respuesta = await iniciarSesion(correo.trim(), password);
       clearTimeout(temporizador);
       abrirSesion(respuesta, password);
-      navegar(respuesta.debeCambiarPassword ? '/cambiar-password' : RUTA_INICIO_POR_ROL[respuesta.idRol], { replace: true });
+      await navegar(respuesta.debeCambiarPassword ? '/cambiar-password' : RUTA_INICIO_POR_ROL[respuesta.idRol], { replace: true });
     } catch (e) {
       clearTimeout(temporizador);
       setError(mensajeDeError(e, 'Credenciales inválidas.'));
@@ -92,7 +92,7 @@ export default function LoginPage() {
         </aside>
 
         {/* Panel Derecho: Formulario de Autenticación */}
-        <form className="tarjeta" style={{ borderRadius: 0, border: 'none', boxShadow: 'none' }} onSubmit={enviar} noValidate>
+        <form className="tarjeta" style={{ borderRadius: 0, border: 'none', boxShadow: 'none' }} onSubmit={(e) => { void enviar(e); }} noValidate>
           <div className="tarjeta-encabezado">
             <h1>{NOMBRE_SISTEMA}</h1>
             <p>Universidad Católica de Santa María</p>

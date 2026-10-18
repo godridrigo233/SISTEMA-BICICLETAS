@@ -30,6 +30,11 @@ El análisis lo ejecuta el pipeline de GitHub Actions en cada push (análisis au
 | H-09 | api | `database/tests/T002__auditoria_inmutable.sql:16,22` | Confiabilidad / Blocker | UPDATE/DELETE sin WHERE | **Falso positivo**: es una prueba negativa que verifica que el trigger de V002 bloquea toda modificación de la auditoría | Justificado |
 | H-10 | api | `database/migrations/V001__esquema_base.sql:23` | Confiabilidad / Medium | «Use VARCHAR2 instead of CHAR» | **No aplica**: regla de Oracle PL/SQL; la base es PostgreSQL 17 y DNI CHAR(8) es de longitud fija | Justificado |
 | H-11 | api | Configuración del análisis | Alcance | El proyecto API analizaba también frontend, SQL y workflows (duplicaba issues y usaba reglas PL/SQL) | `sonar.exclusions=frontend/**,database/**` en el proyecto API; el SQL se valida con las pruebas T001/T002 sobre PostgreSQL 17 en el job de base de datos | Corregido |
+| H-12 | api | `Program.cs:25` | Seguridad / Low | Uso de protocolo HTTP en texto claro (S5332) | Reemplazado por `builder.WebHost.ConfigureKestrel(opciones => opciones.ListenAnyIP(puertoInt))` | Corregido |
+| H-13 | api | `ReglasContrasenaTests.cs:24` | Mantenibilidad / Blocker | Prueba unitaria sin aserción explícita (S2699) | `Record.Exception(...)` con `Assert.Null(excepcion)` | Corregido |
+| H-14 | api | `Program.cs:96` | Mantenibilidad / Medium | Declaración `Program` redundante (ASP0027) | Eliminado `public partial class Program;` (controlado por `InternalsVisibleTo`) | Corregido |
+| H-15 | web | `CambiarPasswordPage.jsx:43`, `LoginPage.jsx:46` | Confiabilidad / Medium | Promesas flotantes de `navegar()` y `onSubmit` | `await navegar(...)` y `onSubmit={(e) => { void enviar(e); }}` | Corregido |
+| H-16 | web | `precalentador.js:14` | Confiabilidad / Medium | Bloque `try-catch` redundante con `.catch()` en promesas | Eliminado `try-catch` y aplicado operador `void` a las llamadas no bloqueantes | Corregido |
 
 ## Análisis tras correcciones
 
