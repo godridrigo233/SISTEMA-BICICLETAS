@@ -17,6 +17,11 @@ public sealed class MonitoreoController(MonitoreoService servicio, TimeProvider 
     public async Task<ActionResult<ResumenMonitoreoResponse>> Resumen(CancellationToken ct) =>
         Ok(await servicio.ResumenAsync(ct));
 
+    /// <summary>Titulares con 3 o más retiros denegados consecutivos (alerta de revisión biométrica, P05).</summary>
+    [HttpGet("alertas-biometricas")]
+    public async Task<ActionResult<IReadOnlyList<AlertaBiometricaResponse>>> AlertasBiometricas(CancellationToken ct) =>
+        Ok(await servicio.AlertasBiometricasAsync(ct));
+
     /// <response code="422">Filtro no válido.</response>
     [HttpGet("eventos")]
     public async Task<ActionResult<Pagina<EventoMonitoreoResponse>>> Eventos([FromQuery] FiltroMonitoreo filtro, CancellationToken ct) =>

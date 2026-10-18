@@ -91,5 +91,41 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         await RetirarAsync(sinEnrolar.IdBicicleta, Vector(), HttpStatusCode.Conflict);
     }
 
-    internal sealed record RespuestaRetiro(string Resultado, string EstadoActualizado, double DistanciaEuclidiana, double UmbralTheta);
+    [FactConBaseDatos]
+    public async Task Retiro_TresRechazosConsecutivos_GeneraAlertaDeRevisionBiometrica()
+    {
+        var bici = await DatosGarita.CrearBicicletaAsync(fabrica, "DENTRO");
+        await DatosGarita.EnrolarAsync(fabrica, bici.IdEstudiante, Vector());
+
+        RespuestaRetiro primero = await RetirarAsync(bici.IdBicicleta, Vector(0.1));
+        RespuestaRetiro segundo = await RetirarAsync(bici.IdBicicleta, Vector(0.1));
+        RespuestaRetiro tercero = await RetirarAsync(bici.IdBicicleta, Vector(0.1));
+
+        Assert.Equal(1, primero.RechazosConsecutivos);
+        Assert.False(segundo.AlertaRevisionBiometrica);
+        Assert.Equal(3, tercero.RechazosConsecutivos);
+        Assert.True(tercero.AlertaRevisionBiometrica);
+        // La alerta no elimina el descriptor ni cambia el estado: el titular sigue enrolado y DENTRO.
+        Assert.Equal(1, await ConsultarAsync<int>($"SELECT count(*)::int AS \"Value\" FROM descriptores_biometricos WHERE id_estudiante = {bici.IdEstudiante}"));
+
+        HttpClient cliente = fabrica.CreateClient();
+        string correo = await UsuariosPrueba.CrearAsync(fabrica, RolSistema.Supervisor);
+        var sesion = await AutenticacionTests.IniciarSesion(cliente, correo, UsuariosPrueba.PasswordValida);
+        using var solicitud = AutenticacionTests.Solicitud("/api/v1/monitoreo/alertas-biometricas", sesion.Token, metodo: HttpMethod.Get);
+        using HttpResponseMessage r = await cliente.SendAsync(solicitud);
+        Assert.True(r.StatusCode == HttpStatusCode.OK, await r.Content.ReadAsStringAsync());
+        string codigo = await ConsultarAsync<string>($"SELECT codigo_universitario AS \"Value\" FROM estudiantes WHERE id_estudiante = {bici.IdEstudiante}");
+        var alertas = (await r.Content.ReadFromJsonAsync<List<Alerta>>())!;
+        Assert.Contains(alertas, a => a.CodigoUniversitario == codigo && a.RechazosConsecutivos == 3);
+
+        // Un retiro exitoso reinicia la cuenta.
+        RespuestaRetiro exito = await RetirarAsync(bici.IdBicicleta, Vector(0.01));
+        Assert.Equal("AUTORIZADO", exito.Resultado);
+        Assert.Equal(0, exito.RechazosConsecutivos);
+    }
+
+    internal sealed record Alerta(string CodigoUniversitario, string Estudiante, int RechazosConsecutivos, DateTime UltimoIntentoUtc);
+
+    internal sealed record RespuestaRetiro(string Resultado, string EstadoActualizado, double DistanciaEuclidiana, double UmbralTheta,
+        int RechazosConsecutivos = 0, bool AlertaRevisionBiometrica = false);
 }

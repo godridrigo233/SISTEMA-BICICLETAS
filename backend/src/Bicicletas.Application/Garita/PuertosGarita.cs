@@ -18,6 +18,12 @@ public interface IBicicletaRepositorio
 public interface IAuditoriaRepositorio
 {
     void Registrar(AuditoriaAcceso evento);
+
+    /// <summary>
+    /// Retiros DENEGADO consecutivos más recientes del estudiante, posteriores a su último enrolamiento
+    /// (un retiro EXITOSO o MANUAL, o un nuevo enrolamiento, reinician la cuenta).
+    /// </summary>
+    Task<int> ContarRechazosConsecutivosAsync(Guid idEstudiante, CancellationToken ct);
 }
 
 /// <summary>Unidad de trabajo: una transacción por caso de uso (atomicidad ACID).</summary>

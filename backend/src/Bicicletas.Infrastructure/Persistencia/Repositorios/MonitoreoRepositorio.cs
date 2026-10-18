@@ -21,8 +21,46 @@ public sealed class FilaMonitoreo
     public string Operador { get; set; } = string.Empty;
 }
 
+/// <summary>Fila sin mapear del cálculo de alertas biométricas.</summary>
+public sealed class FilaAlerta
+{
+    public string CodigoUniversitario { get; set; } = string.Empty;
+    public string Estudiante { get; set; } = string.Empty;
+    public int Rechazos { get; set; }
+    public DateTime Ultimo { get; set; }
+}
+
 public sealed class MonitoreoRepositorio(AppDbContext db) : IMonitoreoRepositorio
 {
+    public async Task<IReadOnlyList<AlertaBiometricaResponse>> AlertasBiometricasAsync(int minimoRechazos, CancellationToken ct)
+    {
+        // Por estudiante: retiros posteriores a su último enrolamiento, del más reciente al más antiguo;
+        // se cuentan los DENEGADO hasta el primer intento no denegado (EXITOSO o MANUAL reinician).
+        List<FilaAlerta> filas = await db.Database.SqlQuery<FilaAlerta>($"""
+            WITH intentos AS (
+                SELECT b.id_estudiante, a.resultado, a.timestamp_evento,
+                       row_number() OVER (PARTITION BY b.id_estudiante ORDER BY a.timestamp_evento DESC, a.id_auditoria DESC) AS n
+                  FROM auditoria_accesos a
+                  JOIN bicicletas b ON b.id_bicicleta = a.id_bicicleta
+                  LEFT JOIN descriptores_biometricos d ON d.id_estudiante = b.id_estudiante
+                 WHERE a.tipo_evento = 'RETIRO'
+                   AND (d.actualizado_en IS NULL OR a.timestamp_evento > d.actualizado_en)
+            ), racha AS (
+                SELECT id_estudiante,
+                       coalesce(min(n) FILTER (WHERE resultado <> 'DENEGADO'), max(n) + 1) - 1 AS rechazos,
+                       max(timestamp_evento) AS ultimo
+                  FROM intentos GROUP BY id_estudiante
+            )
+            SELECT e.codigo_universitario AS "CodigoUniversitario", e.nombres || ' ' || e.apellidos AS "Estudiante",
+                   r.rechazos::int AS "Rechazos", r.ultimo AS "Ultimo"
+              FROM racha r JOIN estudiantes e ON e.id_estudiante = r.id_estudiante
+             WHERE r.rechazos >= {minimoRechazos}
+             ORDER BY r.ultimo DESC
+             LIMIT 200
+            """).ToListAsync(ct);
+        return filas.Select(f => new AlertaBiometricaResponse(f.CodigoUniversitario, f.Estudiante, f.Rechazos, f.Ultimo)).ToList();
+    }
+
     public async Task<ResumenMonitoreoResponse> ResumenAsync(DateTime inicioDiaUtc, CancellationToken ct)
     {
         IQueryable<AuditoriaAcceso> hoy = db.Auditoria.AsNoTracking().Where(a => a.TimestampEvento >= inicioDiaUtc);

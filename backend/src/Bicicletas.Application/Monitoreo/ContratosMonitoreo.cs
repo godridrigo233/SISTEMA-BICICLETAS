@@ -10,7 +10,11 @@ public sealed record ResumenMonitoreoResponse(
     int RechazosHoy,
     int MovimientosManualesHoy,
     int ContingenciasPendientes,
-    double? LatenciaPromedioMsHoy);
+    double? LatenciaPromedioMsHoy,
+    int AlertasRevisionBiometrica = 0);
+
+/// <summary>Estudiante con 3 o más retiros DENEGADO consecutivos desde su último enrolamiento.</summary>
+public sealed record AlertaBiometricaResponse(string CodigoUniversitario, string Estudiante, int RechazosConsecutivos, DateTime UltimoIntentoUtc);
 
 /// <summary>Fila de la bitácora tomada de v_monitoreo_auditoria (registro AUTOMATICO, CONTINGENCIA o DERIVACION).</summary>
 public sealed record EventoMonitoreoResponse(
@@ -42,6 +46,8 @@ public sealed record CriteriosMonitoreo(DateTime? DesdeUtc, DateTime? HastaUtc, 
 public interface IMonitoreoRepositorio
 {
     Task<ResumenMonitoreoResponse> ResumenAsync(DateTime inicioDiaUtc, CancellationToken ct);
+
+    Task<IReadOnlyList<AlertaBiometricaResponse>> AlertasBiometricasAsync(int minimoRechazos, CancellationToken ct);
 
     Task<(int Total, IReadOnlyList<EventoMonitoreoResponse> Elementos)> ConsultarEventosAsync(CriteriosMonitoreo criterios,
         int saltar, int tomar, CancellationToken ct);

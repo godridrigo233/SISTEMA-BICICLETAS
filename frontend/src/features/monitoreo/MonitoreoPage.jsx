@@ -18,7 +18,7 @@ import {
 import Paginador from '../../componentes/Paginador';
 import { fechaPeru } from '../../componentes/formato';
 import { mensajeDeError } from '../../services/apiClient';
-import { consultarEventos, exportarCsv, obtenerResumen } from '../../services/monitoreoService';
+import { consultarEventos, exportarCsv, obtenerAlertasBiometricas, obtenerResumen } from '../../services/monitoreoService';
 
 const VACIO = { tipo: '', resultado: '', registro: '', desde: '', hasta: '' };
 const REGISTRO = { AUTOMATICO: 'Automático', CONTINGENCIA: 'Contingencia', DERIVACION: 'Derivación' };
@@ -32,6 +32,7 @@ function iconoKpi(titulo) {
     case 'Rechazos hoy': return <XCircle {...props} style={{ color: 'var(--rojo-error)' }} />;
     case 'Movimientos manuales hoy': return <UserCheck {...props} style={{ color: '#b45309' }} />;
     case 'Contingencias por conciliar': return <Clock {...props} style={{ color: '#c2410c' }} />;
+    case 'Alertas de revisión biométrica': return <AlertTriangle {...props} style={{ color: 'var(--rojo-error)' }} />;
     case 'Latencia promedio hoy': return <Zap {...props} style={{ color: 'var(--verde-ucsm)' }} />;
     default: return <Activity {...props} />;
   }
@@ -46,14 +47,18 @@ export default function MonitoreoPage() {
   const [pagina, setPagina] = useState(null);
   const [error, setError] = useState('');
   const [exportando, setExportando] = useState(false);
+  const [alertas, setAlertas] = useState([]);
   const [cargando, setCargando] = useState(false);
 
   const cargar = useCallback(async () => {
     setError('');
     setCargando(true);
     try {
-      const [kpi, eventos] = await Promise.all([obtenerResumen(), consultarEventos({ ...aplicados, pagina: numero, tamano: 20 })]);
+      const [kpi, eventos, revision] = await Promise.all([
+        obtenerResumen(), consultarEventos({ ...aplicados, pagina: numero, tamano: 20 }), obtenerAlertasBiometricas(),
+      ]);
       setResumen(kpi);
+      setAlertas(revision ?? []);
       setPagina(eventos);
     } catch (e) {
       setError(mensajeDeError(e, 'No se pudo cargar el monitoreo.'));
@@ -86,6 +91,7 @@ export default function MonitoreoPage() {
     ['Rechazos hoy', resumen.rechazosHoy],
     ['Movimientos manuales hoy', resumen.movimientosManualesHoy],
     ['Contingencias por conciliar', resumen.contingenciasPendientes],
+    ['Alertas de revisión biométrica', resumen.alertasRevisionBiometrica ?? 0],
     ['Latencia promedio hoy', resumen.latenciaPromedioMsHoy == null ? '—' : `${(resumen.latenciaPromedioMsHoy / 1000).toFixed(2)} s`],
   ] : [];
 
@@ -117,6 +123,31 @@ export default function MonitoreoPage() {
           </div>
         ))}
       </section>
+
+      {alertas.length > 0 && (
+        <section className="ficha" aria-label="Alertas de revisión biométrica">
+          <h2>
+            <AlertTriangle size={20} aria-hidden="true" style={{ color: 'var(--rojo-error)' }} />
+            Alertas de revisión biométrica
+          </h2>
+          <p className="ayuda">
+            Titulares con 3 o más retiros denegados consecutivos. El descriptor no se elimina: se recomienda verificar la identidad
+            con DNI y que el estudiante actualice su enrolamiento facial en «Mi registro».
+          </p>
+          <div className="tabla-desplazable">
+            <table className="tabla">
+              <thead><tr><th>Cód. univ.</th><th>Estudiante</th><th>Rechazos consecutivos</th><th>Último intento</th></tr></thead>
+              <tbody>
+                {alertas.map((a) => (
+                  <tr key={a.codigoUniversitario}>
+                    <td>{a.codigoUniversitario}</td><td>{a.estudiante}</td><td>{a.rechazosConsecutivos}</td><td>{fechaPeru(a.ultimoIntentoUtc)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {resumen?.movimientosManualesHoy > 0 && (
         <div style={{ margin: '12px 0' }}>
