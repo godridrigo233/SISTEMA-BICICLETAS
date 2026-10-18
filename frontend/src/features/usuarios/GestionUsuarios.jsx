@@ -45,7 +45,7 @@ export default function GestionUsuarios() {
     }
   }, [filtroRol, numero]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { void cargar(); }, [cargar]);
 
   const correoValido = CORREO_PERSONAL.test(correo.trim());
 
@@ -65,18 +65,20 @@ export default function GestionUsuarios() {
   const crear = (e) => {
     e.preventDefault();
     if (!correoValido || !rol) return;
-    ejecutar(async () => {
+    void ejecutar(async () => {
       setTemporal(await crearUsuario(correo.trim(), Number(rol)));
       setCorreo('');
       setRol('');
     }, 'No se pudo crear la cuenta.');
   };
 
-  const restablecer = (u) => ejecutar(async () => setTemporal(await restablecerPassword(u.idUsuario)), 'No se pudo restablecer la contraseña.');
+  const restablecer = (u) => {
+    void ejecutar(async () => setTemporal(await restablecerPassword(u.idUsuario)), 'No se pudo restablecer la contraseña.');
+  };
 
   const alternar = (u) => (u.activo
     ? setInactivar(u)
-    : ejecutar(async () => {
+    : void ejecutar(async () => {
       await cambiarEstado(u.idUsuario, true);
       setMensaje({ tipo: 'exito', texto: `Cuenta ${u.correo} reactivada.` });
     }, 'No se pudo activar la cuenta.'));

@@ -44,7 +44,7 @@ export default function RegistroEnrolamiento() {
   useEffect(() => {
     if (!consentimiento || registrada) return undefined;
     let activo = true;
-    (async () => {
+    void (async () => {
       try {
         setCamara('cargando');
         faceapi.current = await obtenerFaceApi();

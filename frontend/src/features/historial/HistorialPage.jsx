@@ -43,7 +43,7 @@ export default function HistorialPage() {
     }
   }, [aplicados, numero]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { void cargar(); }, [cargar]);
   useEffect(() => { obtenerPerfil().then(setPerfil).catch(() => setPerfil(null)); }, []);
 
   const rangoInvalido = filtros.desde && filtros.hasta && filtros.desde > filtros.hasta;

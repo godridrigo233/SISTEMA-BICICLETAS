@@ -10,5 +10,5 @@ public sealed class Estudiante
     public string Apellidos { get; private set; } = string.Empty;
     public string Facultad { get; private set; } = string.Empty;
 
-    private Estudiante() { }   // requerido por EF Core
+    internal Estudiante() { }   // lo materializa EF Core (el padrón se carga desde la fuente institucional)
 }

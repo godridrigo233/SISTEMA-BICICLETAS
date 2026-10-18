@@ -14,8 +14,9 @@ public sealed class AutenticacionService(
     IGeneradorToken generadorToken,
     IControlIntentos intentos)
 {
-    // Hash BCrypt (costo 12) de un valor aleatorio: se verifica cuando el correo no existe.
-    private const string HashFicticio = "$2a$12$CSHXz6VaFpMiyfSYklydOewHxvGwai5JJt6iin9P9B1RY22Svty0u";
+    // Hash BCrypt de un valor aleatorio, generado una vez en memoria (no hay hashes en el código fuente):
+    // se verifica cuando el correo no existe para igualar el tiempo de respuesta.
+    private static string? _hashFicticio;
 
     public async Task<LoginResponse> IniciarSesionAsync(LoginRequest solicitud, CancellationToken ct)
     {
@@ -31,7 +32,8 @@ public sealed class AutenticacionService(
         bool valida;
         if (usuario is null)
         {
-            hasher.Verificar(solicitud.Password, HashFicticio);   // mismo costo que un correo existente
+            _hashFicticio ??= hasher.Hashear(Guid.NewGuid().ToString("N"));
+            hasher.Verificar(solicitud.Password, _hashFicticio);   // mismo costo que un correo existente
             valida = false;
         }
         else

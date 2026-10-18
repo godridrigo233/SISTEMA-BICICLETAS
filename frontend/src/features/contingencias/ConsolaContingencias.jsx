@@ -72,7 +72,7 @@ export default function ConsolaContingencias() {
   }, []);
 
   useEffect(() => {
-    cargarPendientes();
+    void cargarPendientes();
     listarVigilantes().then(setVigilantes).catch(() => setVigilantes([]));
   }, [cargarPendientes]);
 
