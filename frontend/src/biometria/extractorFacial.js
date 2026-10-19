@@ -3,6 +3,9 @@
 // API compara con el de referencia y descarta (Ley N.º 29733).
 export const DIMENSIONES_DESCRIPTOR = 128;
 const RUTA_MODELOS = '/models';
+// Mismo detector con el que se conformó el Dataset Primario Local UCSM y se calibró θ = 0.37
+// (SSD MobileNetV1, confianza > 0.90). Cambiar el detector exige recalibrar el umbral.
+export const CONFIANZA_MINIMA_DETECCION = 0.9;
 
 export class ErrorBiometrico extends Error {
   constructor(codigo, mensaje) {
@@ -17,7 +20,7 @@ export const obtenerFaceApi = () => import('face-api.js');
 let modelosCargados = null;
 export function cargarModelos(faceapi) {
   modelosCargados ??= Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri(RUTA_MODELOS),
+    faceapi.nets.ssdMobilenetv1.loadFromUri(RUTA_MODELOS),
     faceapi.nets.faceLandmark68Net.loadFromUri(RUTA_MODELOS),
     faceapi.nets.faceRecognitionNet.loadFromUri(RUTA_MODELOS),
   ]).catch((error) => {
@@ -45,7 +48,7 @@ export function seleccionarRostroUnico(rostros) {
 export async function extraerDescriptor(video, faceapi) {
   await cargarModelos(faceapi);
   const rostros = await faceapi
-    .detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+    .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: CONFIANZA_MINIMA_DETECCION }))
     .withFaceLandmarks()
     .withFaceDescriptors();
   return seleccionarRostroUnico(rostros);

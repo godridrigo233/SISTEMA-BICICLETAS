@@ -6,6 +6,6 @@ licencia MIT). Se sirven desde el propio dominio de la SPA para no depender de u
 
 | Modelo | Uso |
 |---|---|
-| `tiny_face_detector_model` | Detección rápida del rostro en el video de la garita |
+| `ssd_mobilenetv1_model` | Detección del rostro (SSD MobileNetV1, confianza > 0.90), el mismo detector usado para conformar el Dataset Primario Local UCSM y calibrar θ = 0.37 |
 | `face_landmark_68_model` | 68 puntos faciales para alinear el rostro |
 | `face_recognition_model` | Descriptor de 128 valores (red residual tipo ResNet-34) |
