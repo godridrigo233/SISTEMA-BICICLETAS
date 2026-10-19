@@ -19,7 +19,7 @@ import { mensajeDeError } from '../../services/apiClient';
  * CU-04 en W2: captura del rostro, extracción del descriptor en el navegador y decisión en la API.
  * El video solo se muestra en vivo: ningún fotograma se guarda ni se envía (Ley N.º 29733).
  */
-export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, alCancelar, permiteManual = false }) {
+export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, permiteManual = false }) {
   const video = useRef(null);
   const flujo = useRef(null);
   const faceapi = useRef(null);
@@ -57,9 +57,11 @@ export default function VerificacionRetiro({ bicicleta, inicioMs, alTerminar, al
   async function capturar() {
     setFase('verificando');
     setMensaje('');
+    // RNF-01: el reloj inicia con la captura facial; la API suma el tiempo de su decisión.
+    const inicioCaptura = performance.now();
     try {
       const descriptor = await extraerDescriptor(video.current, faceapi.current);
-      const respuesta = await autorizarRetiro(bicicleta.idBicicleta, descriptor, Math.round(performance.now() - inicioMs));
+      const respuesta = await autorizarRetiro(bicicleta.idBicicleta, descriptor, Math.round(performance.now() - inicioCaptura));
       descriptor.fill(0); // se descarta también en el navegador
       setResultado(respuesta);
       if (respuesta.resultado === 'AUTORIZADO') {

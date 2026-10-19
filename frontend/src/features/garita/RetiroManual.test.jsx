@@ -29,7 +29,7 @@ describe('W2 · Retiro manual del Supervisor (derivación)', () => {
     vi.mocked(retiroManual).mockResolvedValue({ resultado: 'AUTORIZADO_MANUAL', estadoActualizado: 'FUERA' });
     const alTerminar = vi.fn();
     const usuario = userEvent.setup();
-    render(<VerificacionRetiro bicicleta={bicicleta} inicioMs={0} alTerminar={alTerminar} alCancelar={vi.fn()} permiteManual />);
+    render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={alTerminar} alCancelar={vi.fn()} permiteManual />);
 
     expect(screen.queryByLabelText(/DNI del titular/)).not.toBeInTheDocument();
     await usuario.click(await screen.findByRole('button', { name: 'Capturar y verificar' }));
@@ -47,7 +47,7 @@ describe('W2 · Retiro manual del Supervisor (derivación)', () => {
 
   it('el Garitero solo puede derivar; no ve el formulario de DNI', async () => {
     const usuario = userEvent.setup();
-    render(<VerificacionRetiro bicicleta={bicicleta} inicioMs={0} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
+    render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
     await usuario.click(await screen.findByRole('button', { name: 'Capturar y verificar' }));
     expect(await screen.findByRole('button', { name: 'Derivar al supervisor' })).toBeInTheDocument();
     expect(screen.queryByLabelText(/DNI del titular/)).not.toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('W2 · Retiro manual del Supervisor (derivación)', () => {
   it('al tercer rechazo consecutivo muestra la alerta de revisión biométrica', async () => {
     vi.mocked(autorizarRetiro).mockResolvedValue({ resultado: 'DENEGADO', estadoActualizado: 'DENTRO', distanciaEuclidiana: 0.8, umbralTheta: 0.37, rechazosConsecutivos: 3, alertaRevisionBiometrica: true });
     const usuario = userEvent.setup();
-    render(<VerificacionRetiro bicicleta={bicicleta} inicioMs={0} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
+    render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
     await usuario.click(await screen.findByRole('button', { name: /Capturar y verificar/ }));
     expect(await screen.findByText(/Alerta de revisión biométrica: 3 rechazos consecutivos/)).toBeInTheDocument();
   });

@@ -56,6 +56,8 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         Assert.InRange(r.DistanciaEuclidiana, 0.11, 0.12);
         Assert.Equal("FUERA", await ConsultarAsync<string>($"SELECT estado AS \"Value\" FROM bicicletas WHERE id_bicicleta = {bici.IdBicicleta}"));
         Assert.Equal(1, await ConsultarAsync<int>($"SELECT count(*)::int AS \"Value\" FROM auditoria_accesos WHERE id_bicicleta = {bici.IdBicicleta} AND tipo_evento = 'RETIRO' AND resultado = 'EXITOSO' AND distancia_euclidiana IS NOT NULL"));
+        // RNF-01: la latencia auditada suma la captura en el navegador (900 ms) y la decisión en el servidor.
+        Assert.True(await ConsultarAsync<int>($"SELECT latencia_ms AS \"Value\" FROM auditoria_accesos WHERE id_bicicleta = {bici.IdBicicleta} AND tipo_evento = 'RETIRO'") >= 900);
     }
 
     [FactConBaseDatos]
@@ -74,6 +76,8 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         // El descriptor capturado no se persiste: el titular conserva un solo descriptor, sin cambios.
         Assert.Equal(1, await ConsultarAsync<int>($"SELECT count(*)::int AS \"Value\" FROM descriptores_biometricos WHERE id_estudiante = {bici.IdEstudiante}"));
         Assert.Equal(referencia[5], await ConsultarAsync<double>($"SELECT vector_embedding[6] AS \"Value\" FROM descriptores_biometricos WHERE id_estudiante = {bici.IdEstudiante}"), 10);
+        // Sin el modo de investigación de la Fase B, tampoco se guarda en la tabla de investigación.
+        Assert.Equal(0, await ConsultarAsync<int>($"SELECT count(*)::int AS \"Value\" FROM investigacion_capturas WHERE id_estudiante = {bici.IdEstudiante}"));
     }
 
     [FactConBaseDatos]

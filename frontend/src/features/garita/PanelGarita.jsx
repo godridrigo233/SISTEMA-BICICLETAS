@@ -58,7 +58,7 @@ export default function PanelGarita() {
   async function consultar(evento) {
     evento.preventDefault();
     if (!codigo.trim() || ocupado) return;
-    inicio.current = performance.now(); // la latencia se mide desde la lectura del QR (RNF-01)
+    inicio.current = performance.now(); // latencia del ingreso: desde la lectura del QR (RNF-01)
     setOcupado(true);
     setMensaje(null);
     try {
@@ -223,7 +223,6 @@ export default function PanelGarita() {
           ) : (
             <VerificacionRetiro
               bicicleta={bicicleta}
-              inicioMs={inicio.current}
               alTerminar={terminarRetiro}
               alCancelar={reiniciar}
               permiteManual={[ROL.SUPERVISOR, ROL.ADMINISTRADOR].includes(sesion?.idRol)}

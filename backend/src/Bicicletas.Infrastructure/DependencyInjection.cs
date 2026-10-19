@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<IMonitoreoRepositorio, MonitoreoRepositorio>();
         services.AddScoped<IContingenciaRepositorio, ContingenciaRepositorio>();
         services.AddScoped<IGestionUsuariosRepositorio, GestionUsuariosRepositorio>();
+        services.AddScoped<IRegistroInvestigacion, RegistroInvestigacion>();
         return services;
     }
 }
