@@ -7,6 +7,7 @@
 | `V003__cc08_cc10_conciliacion.sql` | `conciliar_contingencia`, `conciliar_lote`, `v_monitoreo_auditoria`, REVOKE | CC-08, CC-10 |
 | `V004__seguridad_rls.sql` | RLS habilitado sin políticas para anon/authenticated | P05 (OWASP A01) |
 | `V005__catalogo_roles.sql` | Catálogo RBAC de 4 roles | P06 |
+| `V006__investigacion_fase_b.sql` | `investigacion_capturas`: descriptores de la Fase B (solo con el modo de investigación activo; se vacía al concluir el estudio) | Tesis, Fase B |
 
 V001–V005 constituyen la línea base del esquema vigente en Supabase al 17/10/2026 (verificada contra
 el respaldo de esa fecha). A partir de aquí, todo cambio es una migración nueva `V006__...`;

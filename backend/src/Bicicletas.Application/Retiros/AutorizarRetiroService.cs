@@ -16,6 +16,7 @@ public sealed class AutorizarRetiroService(
     IDescriptorRepositorio descriptores,
     IAuditoriaRepositorio auditoria,
     IUnidadDeTrabajo unidad,
+    IRegistroInvestigacion investigacion,
     PoliticaBiometrica politica,
     TimeProvider reloj)
 {
@@ -23,6 +24,7 @@ public sealed class AutorizarRetiroService(
     {
         ArgumentNullException.ThrowIfNull(solicitud);
         ValidarDescriptor(solicitud.DescriptorCapturado);
+        long inicio = reloj.GetTimestamp();
 
         try
         {
@@ -44,12 +46,19 @@ public sealed class AutorizarRetiroService(
                 bicicleta.RegistrarSalida();   // DENTRO → FUERA (RF-08)
 
             // 3. Todo intento queda auditado, incluido el DENEGADO (RF-07, OWASP A09).
-            auditoria.Registrar(new AuditoriaAcceso(
+            //    RNF-01: latencia = captura y extracción en el navegador + decisión en el servidor.
+            int? latencia = solicitud.LatenciaMs + (int)Math.Round(reloj.GetElapsedTime(inicio).TotalMilliseconds);
+            var registro = new AuditoriaAcceso(
                 bicicleta.IdBicicleta, TipoEvento.Retiro, distancia, idVigilante,
                 coincide ? ResultadoAcceso.Exitoso : ResultadoAcceso.Denegado,
-                solicitud.LatenciaMs, reloj.GetUtcNow().UtcDateTime));
+                latencia, reloj.GetUtcNow().UtcDateTime);
+            auditoria.Registrar(registro);
 
             await unidad.GuardarAsync(ct);
+            // Fase B de la tesis: solo con el modo de investigación activo y en la misma transacción.
+            if (investigacion.Habilitado)
+                await investigacion.RegistrarAsync(new CapturaInvestigacion(
+                    bicicleta.IdEstudiante, registro.IdAuditoria, solicitud.DescriptorCapturado, distancia, latencia), ct);
             // Protocolo ante rechazos consecutivos (P05): se cuenta dentro de la misma transacción.
             int rechazos = coincide ? 0 : await auditoria.ContarRechazosConsecutivosAsync(bicicleta.IdEstudiante, ct);
             await transaccion.ConfirmarAsync(ct);   // COMMIT: estado y auditoría juntos, o ninguno

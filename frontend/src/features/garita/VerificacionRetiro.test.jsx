@@ -16,7 +16,7 @@ const bicicleta = { idBicicleta: 'b-1', titular: 'ALUMNO UNO', marcaModelo: 'Mar
 const detener = vi.fn();
 
 function montar(alTerminar = vi.fn()) {
-  render(<VerificacionRetiro bicicleta={bicicleta} inicioMs={0} alTerminar={alTerminar} alCancelar={vi.fn()} />);
+  render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={alTerminar} alCancelar={vi.fn()} />);
   return alTerminar;
 }
 

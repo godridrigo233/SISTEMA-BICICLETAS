@@ -7,6 +7,9 @@ respaldo_*.sql
 !.env.example
 appsettings.*.local.json
 ia/calibracion/datos/
+ia/evaluacion/salida/
+ia/**/*.xlsx
+__pycache__/
 *.csv
 !database/seeds/*.csv
 !frontend/src/**/__fixtures__/*.csv
