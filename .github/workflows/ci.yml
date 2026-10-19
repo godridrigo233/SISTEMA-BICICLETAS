@@ -121,7 +121,7 @@ jobs:
             /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.cs.opencover.reportsPaths="backend/TestResults/**/coverage.opencover.xml" \
             /d:sonar.cs.vstest.reportsPaths="backend/TestResults/*.trx" \
-            /d:sonar.exclusions="frontend/**,database/**" > sonar-begin.log 2>&1; then
+            /d:sonar.exclusions="frontend/**,database/**,ia/**" > sonar-begin.log 2>&1; then
             cat sonar-begin.log
             grep -v '^\s*$' sonar-begin.log | tail -12 | sed 's/^/::error title=SonarCloud::/'
             exit 1
