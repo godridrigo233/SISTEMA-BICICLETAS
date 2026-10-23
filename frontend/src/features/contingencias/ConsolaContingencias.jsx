@@ -364,7 +364,7 @@ export default function ConsolaContingencias() {
           </h2>
         </div>
         <p className="ayuda" style={{ margin: '-8px 0 16px' }}>
-          Para filas rechazadas del CSV, la bitácora en papel o casos puntuales. Lo que agregue aquí entra al mismo lote que el archivo importado.
+          Para la bitácora en papel o casos puntuales. Lo que agregue aquí entra al mismo lote que el archivo importado.
         </p>
 
         <div className="filtros" style={{ background: 'var(--gris-50)', padding: 16, margin: '0 0 16px' }}>

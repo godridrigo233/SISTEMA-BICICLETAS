@@ -98,7 +98,7 @@ describe('W3 · Consola de Regularización', () => {
   it('el bloque 2 se presenta como «Agregar o corregir un movimiento» y explica cuándo usarlo', () => {
     render(<ConsolaContingencias />);
     expect(screen.getByRole('heading', { name: '2. Agregar o corregir un movimiento' })).toBeInTheDocument();
-    expect(screen.getByText(/Para filas rechazadas del CSV, la bitácora en papel o casos puntuales/)).toBeInTheDocument();
+    expect(screen.getByText(/Para la bitácora en papel o casos puntuales/)).toBeInTheDocument();
   });
 
   it('el registro manual se habilita solo cuando la verificación del servidor es válida', async () => {
