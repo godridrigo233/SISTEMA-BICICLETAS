@@ -19,6 +19,13 @@ const OPCIONES = [
   ['NO_RECONOCE', 'El titular no reconoce el retiro', 'Posible sustracción: permanece OBSERVADO y se deriva a Seguridad.'],
 ];
 
+// Motivos frecuentes por resolución: un clic completa el motivo, que sigue siendo editable (Nielsen H7).
+const MOTIVOS = {
+  ERROR_DIGITACION: ['DNI mal transcrito desde el folio físico', 'Dígitos invertidos al digitar el DNI'],
+  CONFIRMADO_TITULAR: ['Titular confirmó el retiro por teléfono', 'Titular confirmó el retiro en persona', 'Retiro por un tercero autorizado por el titular'],
+  NO_RECONOCE: ['Titular no reconoce el retiro; se deriva a Seguridad'],
+};
+
 /** Modal «Revisar» de un retiro OBSERVADO (W3, CC-08). */
 export default function RevisarObservado({ idContingencia, alTerminar, alCerrar }) {
   const [detalle, setDetalle] = useState(null);
@@ -133,7 +140,16 @@ export default function RevisarObservado({ idContingencia, alTerminar, alCerrar 
             onChange={(e) => setMotivo(e.target.value)}
             placeholder="Ej.: confirmado por llamada al titular el [dd/mm] a las [hh:mm]"
           />
-          <p className="ayuda" style={{ textAlign: 'right' }}>{motivo.length} / 160</p>
+          {resolucion && (
+            <div className="con-boton" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }} aria-label="Motivos frecuentes">
+              {MOTIVOS[resolucion].map((m) => (
+                <button key={m} type="button" className="boton" style={{ padding: '4px 10px', fontSize: '0.85rem' }} onClick={() => setMotivo(m)}>
+                  {m}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="ayuda" style={{ textAlign: 'right' }}>{motivo.length} / 160 · elija un motivo frecuente o escriba uno propio</p>
         </div>
 
         {error && (

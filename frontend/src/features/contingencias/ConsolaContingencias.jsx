@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Clock,
   Download,
-  FileSpreadsheet,
   FileText,
   Filter,
   Plus,
@@ -31,6 +30,7 @@ import {
   registrarFila,
 } from '../../services/contingenciasService';
 import RevisarObservado from './RevisarObservado';
+import { armarCsv, leerCsv } from './csvGarita';
 
 const PLANTILLA = '﻿folio;fecha_hora;tipo;codigo;dni;vigilante\nE-0001;16/10/2026 10:15;INGRESO;[código QR o N.º de marco];;[correo del vigilante]\n';
 const FILA_VACIA = { tipo: 'INGRESO', codigo: '', folio: '', fechaHora: '', dni: '', vigilante: '' };
@@ -57,13 +57,15 @@ export default function ConsolaContingencias() {
   const [contenido, setContenido] = useState('');
   const [nombreArchivo, setNombreArchivo] = useState('');
   const [previa, setPrevia] = useState(null);
+  const [filasCsv, setFilasCsv] = useState(null); // filas editables del archivo (null si el encabezado no es el de la plantilla)
+  const [editado, setEditado] = useState(0);
   const [fila, setFila] = useState(FILA_VACIA);
   const [verificacion, setVerificacion] = useState(null);
   const [vigilantes, setVigilantes] = useState([]);
   const [pendientes, setPendientes] = useState([]);
   const [mensaje, setMensaje] = useState(null);
   const [ocupado, setOcupado] = useState(false);
-  const [confirmar, setConfirmar] = useState(null); // { tipo: 'lote' } | { tipo: 'fila', item }
+  const [confirmar, setConfirmar] = useState(null); // { tipo: 'importar' } | { tipo: 'lote' } | { tipo: 'fila', item }
   const [revisando, setRevisando] = useState(null);
 
   const avisar = (tipo, texto) => setMensaje({ tipo, texto });
@@ -85,44 +87,72 @@ export default function ConsolaContingencias() {
     return () => clearTimeout(espera);
   }, [fila]);
 
-  async function elegirArchivo(e) {
-    const elegido = e.target.files?.[0];
-    setPrevia(null);
-    if (!elegido) { setContenido(''); setNombreArchivo(''); return; }
-    setNombreArchivo(elegido.name);
-    setContenido(await leerTexto(elegido));
-  }
-
-  async function validarArchivo() {
+  async function validar(texto) {
     setOcupado(true);
     setMensaje(null);
     try {
-      setPrevia(await previsualizarCsv(contenido));
+      setPrevia(await previsualizarCsv(texto));
     } catch (e) {
+      setPrevia(null);
       avisar('alerta', mensajeDeError(e, 'No se pudo validar el archivo.'));
     } finally {
       setOcupado(false);
     }
   }
 
+  // Al elegir el archivo se valida solo: no hace falta un botón «Validar» (Nielsen H7).
+  async function elegirArchivo(e) {
+    const elegido = e.target.files?.[0];
+    setPrevia(null);
+    setFilasCsv(null);
+    if (!elegido) { setContenido(''); setNombreArchivo(''); return; }
+    setNombreArchivo(elegido.name);
+    const original = await leerTexto(elegido);
+    const { encabezadoValido, filas } = leerCsv(original);
+    const texto = encabezadoValido ? armarCsv(filas) : original; // con otro encabezado, el servidor explica el error
+    setFilasCsv(encabezadoValido ? filas : null);
+    setContenido(texto);
+    await validar(texto);
+  }
+
+  // Corrección en la misma vista previa: se edita solo el dato observado y la fila se vuelve a validar.
+  function corregirCelda(indice, campo, valor) {
+    setFilasCsv((filas) => filas.map((f, i) => (i === indice ? { ...f, [campo]: valor } : f)));
+    setEditado((n) => n + 1);
+  }
+
+  useEffect(() => {
+    if (!editado || !filasCsv) return undefined;
+    const espera = setTimeout(() => {
+      const texto = armarCsv(filasCsv);
+      setContenido(texto);
+      previsualizarCsv(texto).then(setPrevia).catch(() => {});
+    }, 500);
+    return () => clearTimeout(espera);
+  }, [editado, filasCsv]);
+
   function cancelarArchivo() {
     setPrevia(null);
+    setFilasCsv(null);
+    setEditado(0);
     setContenido('');
     setNombreArchivo('');
     if (archivo.current) archivo.current.value = '';
   }
 
-  async function agregarArchivo() {
-    setOcupado(true);
+  // Un solo paso: importa las filas válidas y concilia el lote, tras una única confirmación.
+  async function importarYConciliar() {
+    const r = await importarCsv(contenido);
+    const noCargadas = r.conError ? ` ${r.conError} filas con error no se cargaron.` : '';
+    cancelarArchivo();
     try {
-      const r = await importarCsv(contenido);
-      avisar('exito', `Se agregaron ${r.insertadas} filas al lote${r.conError ? ` (${r.conError} con error no se cargaron)` : ''}.`);
-      cancelarArchivo();
-      await cargarPendientes();
+      const l = await conciliarLote();
+      avisar(
+        l.observados || l.conflictos || r.conError ? 'aviso' : 'exito',
+        `Se importaron ${r.insertadas} filas y se procesó el lote: ${l.conciliados} CONCILIADO · ${l.observados} OBSERVADO · ${l.conflictos} conflictos.${noCargadas}${l.observados ? ' Resuelva los observados con «Revisar».' : ''}`,
+      );
     } catch (e) {
-      avisar('alerta', mensajeDeError(e, 'No se pudo importar el archivo.'));
-    } finally {
-      setOcupado(false);
+      avisar('alerta', `Se importaron ${r.insertadas} filas, pero no se pudo conciliar el lote: ${mensajeDeError(e, 'reintente con «Conciliar lote».')}`);
     }
   }
 
@@ -145,7 +175,9 @@ export default function ConsolaContingencias() {
   async function ejecutarConfirmacion() {
     setOcupado(true);
     try {
-      if (confirmar.tipo === 'lote') {
+      if (confirmar.tipo === 'importar') {
+        await importarYConciliar();
+      } else if (confirmar.tipo === 'lote') {
         const r = await conciliarLote();
         avisar(
           r.observados || r.conflictos ? 'aviso' : 'exito',
@@ -164,7 +196,7 @@ export default function ConsolaContingencias() {
       }
       await cargarPendientes();
     } catch (e) {
-      avisar('alerta', mensajeDeError(e, 'No se pudo conciliar.'));
+      avisar('alerta', mensajeDeError(e, confirmar.tipo === 'importar' ? 'No se pudo importar el archivo.' : 'No se pudo conciliar.'));
     } finally {
       setOcupado(false);
       setConfirmar(null);
@@ -172,6 +204,7 @@ export default function ConsolaContingencias() {
   }
 
   const listas = previa?.filter((f) => f.valida).length ?? 0;
+  const retirosListos = previa?.filter((f) => f.valida && f.tipo === 'RETIRO').length ?? 0;
   const cambiar = (campo) => (e) => setFila((f) => ({ ...f, [campo]: e.target.value }));
   const nPendientes = pendientes.filter((p) => p.estado === 'PENDIENTE').length;
 
@@ -225,19 +258,10 @@ export default function ConsolaContingencias() {
               onChange={elegirArchivo}
               style={{ padding: '8px 12px' }}
             />
-            <button
-              type="button"
-              className="boton"
-              onClick={validarArchivo}
-              disabled={!contenido || ocupado}
-              style={{ whiteSpace: 'nowrap' }}
-            >
-              <FileSpreadsheet size={18} aria-hidden="true" />
-              Validar archivo
-            </button>
+            {ocupado && !previa && <span className="ayuda" role="status">Validando…</span>}
           </div>
           <p className="ayuda">
-            Columnas: folio; fecha_hora; tipo; codigo (QR o N.º de marco); dni (solo retiro); vigilante. Separador «;» o «,», UTF-8.
+            Al elegir el archivo se valida automáticamente. Columnas: folio; fecha_hora; tipo; codigo (QR o N.º de marco); dni (solo retiro); vigilante. Separador «;» o «,», UTF-8.
           </p>
         </div>
 
@@ -261,27 +285,47 @@ export default function ConsolaContingencias() {
                   </tr>
                 </thead>
                 <tbody>
-                  {previa.map((f) => (
-                    <tr key={f.fila} className={f.valida ? '' : 'fila-error'}>
-                      <td><strong>{f.fila}</strong></td>
-                      <td>{f.folio}</td>
-                      <td>
-                        <span className={`etiqueta ${f.tipo === 'INGRESO' ? 'badge-dentro' : 'badge-manual'}`}>
-                          {f.tipo}
-                        </span>
-                      </td>
-                      <td>{f.bicicleta ?? <em>[{f.codigo || 'sin código'}]</em>}</td>
-                      <td>{f.fechaHoraUtc ? fechaPeru(f.fechaHoraUtc) : '—'}</td>
-                      <td>{f.dni ?? '—'}</td>
-                      <td>
-                        {f.valida ? (
-                          <span className="etiqueta badge-exitoso">✓ Lista</span>
-                        ) : (
-                          <span className="etiqueta badge-denegado">✗ {f.error}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {previa.map((f) => {
+                    const i = f.fila - 2;
+                    const editable = !f.valida && filasCsv?.[i];
+                    const celda = (campo, etiqueta, props = {}) => (
+                      <input
+                        aria-label={`${etiqueta} de la fila ${f.fila}`}
+                        value={filasCsv[i][campo]}
+                        onChange={(e) => corregirCelda(i, campo, e.target.value)}
+                        style={{ minWidth: 0, width: '100%', padding: '4px 6px' }}
+                        {...props}
+                      />
+                    );
+                    return (
+                      <tr key={f.fila} className={f.valida ? '' : 'fila-error'}>
+                        <td><strong>{f.fila}</strong></td>
+                        <td>{f.folio}</td>
+                        <td>
+                          {editable ? (
+                            <select aria-label={`Tipo de la fila ${f.fila}`} value={filasCsv[i].tipo} onChange={(e) => corregirCelda(i, 'tipo', e.target.value)}>
+                              <option value="INGRESO">INGRESO</option>
+                              <option value="RETIRO">RETIRO</option>
+                            </select>
+                          ) : (
+                            <span className={`etiqueta ${f.tipo === 'INGRESO' ? 'badge-dentro' : 'badge-manual'}`}>
+                              {f.tipo}
+                            </span>
+                          )}
+                        </td>
+                        <td>{editable ? celda('codigo', 'Código', { maxLength: 60 }) : (f.bicicleta ?? <em>[{f.codigo || 'sin código'}]</em>)}</td>
+                        <td>{editable ? celda('fecha_hora', 'Fecha y hora', { placeholder: 'dd/mm/aaaa hh:mm', maxLength: 16 }) : (f.fechaHoraUtc ? fechaPeru(f.fechaHoraUtc) : '—')}</td>
+                        <td>{editable ? celda('dni', 'DNI', { inputMode: 'numeric', maxLength: 8, placeholder: '8 dígitos' }) : (f.dni ?? '—')}</td>
+                        <td>
+                          {f.valida ? (
+                            <span className="etiqueta badge-exitoso">✓ Lista</span>
+                          ) : (
+                            <span className="etiqueta badge-denegado">✗ {f.error}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -295,15 +339,17 @@ export default function ConsolaContingencias() {
               <button
                 type="button"
                 className="boton boton-primario"
-                onClick={agregarArchivo}
+                onClick={() => setConfirmar({ tipo: 'importar' })}
                 disabled={listas === 0 || ocupado}
               >
-                <Plus size={18} aria-hidden="true" />
-                Agregar {listas} filas al lote
+                <CheckCircle size={18} aria-hidden="true" />
+                Importar y conciliar {listas} filas
               </button>
             </div>
             <p className="ayuda" style={{ marginTop: 8 }}>
-              Las filas con error no se cargan: corríjalas en el bloque 2 («Agregar o corregir un movimiento»).
+              {filasCsv
+                ? 'Las filas con error se corrigen aquí mismo: cambie el dato observado y la fila se vuelve a validar. Las que sigan con error no se cargan.'
+                : 'Las filas con error no se cargan: corríjalas en el bloque 2 («Agregar o corregir un movimiento»).'}
             </p>
           </div>
         )}
@@ -318,7 +364,7 @@ export default function ConsolaContingencias() {
           </h2>
         </div>
         <p className="ayuda" style={{ margin: '-8px 0 16px' }}>
-          Para filas rechazadas del CSV, la bitácora en papel o casos puntuales. Lo que agregue aquí entra al mismo lote que el archivo importado.
+          Para la bitácora en papel o casos puntuales. Lo que agregue aquí entra al mismo lote que el archivo importado.
         </p>
 
         <div className="filtros" style={{ background: 'var(--gris-50)', padding: 16, margin: '0 0 16px' }}>
@@ -475,10 +521,16 @@ export default function ConsolaContingencias() {
           ocupado={ocupado}
           alCancelar={() => setConfirmar(null)}
           alConfirmar={ejecutarConfirmacion}
-          titulo={confirmar.tipo === 'lote' ? `¿Conciliar los ${nPendientes} movimientos pendientes?` : '¿Seguro que desea conciliar este movimiento?'}
+          titulo={
+            confirmar.tipo === 'importar'
+              ? `¿Importar y conciliar ${listas} movimientos?`
+              : confirmar.tipo === 'lote' ? `¿Conciliar los ${nPendientes} movimientos pendientes?` : '¿Seguro que desea conciliar este movimiento?'
+          }
         >
           <p>
-            {confirmar.tipo === 'lote'
+            {confirmar.tipo === 'importar'
+              ? `${listas - retirosListos} ingresos y ${retirosListos} retiros del archivo ${nombreArchivo}${previa && previa.length > listas ? `; ${previa.length - listas} filas con error no se cargarán` : ''}.${nPendientes ? ` También se conciliarán ${nPendientes} movimientos que ya estaban pendientes en el lote.` : ''} Se procesan en orden de fecha y hora y cada fila se concilia por separado; los retiros con DNI distinto quedan OBSERVADOS.`
+              : confirmar.tipo === 'lote'
               ? 'Se procesan en orden de fecha y hora (los ingresos antes que los retiros). Cada fila se concilia por separado: si una falla, las demás no se afectan.'
               : `Folio ${confirmar.item.folio}: ${confirmar.item.tipo === 'INGRESO' ? 'la bicicleta pasará a DENTRO' : 'la bicicleta pasará a FUERA'}. Se registra en la auditoría como MANUAL.`}
           </p>
