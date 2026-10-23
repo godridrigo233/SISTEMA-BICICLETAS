@@ -303,20 +303,23 @@ export default function ConsolaContingencias() {
               </button>
             </div>
             <p className="ayuda" style={{ marginTop: 8 }}>
-              Las filas con error no se cargan: corríjalas en el archivo o con el registro manual.
+              Las filas con error no se cargan: corríjalas en el bloque 2 («Agregar o corregir un movimiento»).
             </p>
           </div>
         )}
       </section>
 
-      {/* SECCIÓN 2: REGISTRO MANUAL */}
+      {/* SECCIÓN 2: AGREGAR O CORREGIR UN MOVIMIENTO (filas rechazadas, bitácora en papel o casos puntuales) */}
       <form className="ficha" aria-labelledby="t-manual" onSubmit={agregarFila} style={{ borderLeft: '4px solid #2b6cb0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div className="paso-numero" style={{ background: '#2b6cb0', color: '#ffffff' }}>2</div>
           <h2 id="t-manual" style={{ margin: 0, paddingBottom: 0, borderBottom: 'none' }}>
-            2. Registro manual (corrección o fila individual)
+            2. Agregar o corregir un movimiento
           </h2>
         </div>
+        <p className="ayuda" style={{ margin: '-8px 0 16px' }}>
+          Para filas rechazadas del CSV, la bitácora en papel o casos puntuales. Lo que agregue aquí entra al mismo lote que el archivo importado.
+        </p>
 
         <div className="filtros" style={{ background: 'var(--gris-50)', padding: 16, margin: '0 0 16px' }}>
           <div className="campo">
