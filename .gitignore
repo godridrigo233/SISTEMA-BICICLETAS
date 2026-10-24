@@ -21,10 +21,13 @@ TestResults/
 *.user
 .vs/
 
-# --- Node / Vite ---
+# --- Node / Vite / Playwright ---
 node_modules/
 dist/
 coverage/
+playwright-report/
+test-results/
+blob-report/
 
 # --- Pruebas de carga (k6) ---
 tests/carga/resultados/
