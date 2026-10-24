@@ -26,6 +26,9 @@ node_modules/
 dist/
 coverage/
 
+# --- Pruebas de carga (k6) ---
+tests/carga/resultados/
+
 # --- Sistema / editores ---
 .DS_Store
 Thumbs.db

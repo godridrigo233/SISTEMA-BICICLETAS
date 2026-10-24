@@ -1,0 +1,53 @@
+# Prueba de Carga para RNF-01 (tiempo de respuesta < 2 s) con k6.
+# Flujo manual activable mediante workflow_dispatch.
+# Las credenciales se gestionan a través de secretos y variables de entorno, nunca en el código.
+name: Prueba de Carga RNF-01 (k6)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL base de la API REST (opcional; si se omite usa K6_BASE_URL de Secrets/Variables)'
+        required: false
+        type: string
+        default: ''
+      permitir_escritura:
+        description: 'Permitir operaciones de escritura (true/false). PRECAUCIÓN: true solo debe usarse contra base de datos de prueba, nunca contra el piloto.'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: carga-k6-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  carga:
+    name: Prueba de Carga RNF-01 (10 VUs - 2m)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código fuente
+        uses: actions/checkout@v5
+
+      - name: Configurar k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Ejecutar prueba de carga con k6
+        env:
+          K6_BASE_URL: ${{ inputs.base_url != '' && inputs.base_url || secrets.K6_BASE_URL || vars.K6_BASE_URL }}
+          K6_CORREO: ${{ secrets.K6_CORREO || vars.K6_CORREO }}
+          K6_PASSWORD: ${{ secrets.K6_PASSWORD }}
+          K6_CODIGO_QR: ${{ secrets.K6_CODIGO_QR || vars.K6_CODIGO_QR }}
+          K6_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura }}
+        run: k6 run tests/carga/rnf01-carga.js
+
+      - name: Publicar resumen de prueba de carga
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resumen-prueba-carga-rnf01
+          path: tests/carga/resultados/
+          retention-days: 14
