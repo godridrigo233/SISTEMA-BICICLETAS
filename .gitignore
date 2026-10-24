@@ -29,6 +29,9 @@ playwright-report/
 test-results/
 blob-report/
 
+# --- Pruebas de carga (k6) ---
+tests/carga/resultados/
+
 # --- Sistema / editores ---
 .DS_Store
 Thumbs.db
