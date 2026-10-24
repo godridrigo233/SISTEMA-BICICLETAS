@@ -63,6 +63,7 @@ Las credenciales y direcciones nunca se versionan en el repositorio. Se configur
    K6_PASSWORD="tu-password-segura" \
    K6_CODIGO_QR="b0000000-0000-4000-8000-0000000000a1" \
    K6_PERMITIR_ESCRITURA="false" \
+   mkdir -p tests/carga/resultados
    k6 run tests/carga/rnf01-carga.js
    ```
 

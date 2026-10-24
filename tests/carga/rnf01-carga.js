@@ -23,11 +23,14 @@ const permitirEscritura = String(__ENV.K6_PERMITIR_ESCRITURA || 'false').toLower
 const thresholdsConfig = {
   'http_req_duration{escenario:consulta}': ['p(95)<2000'],
   'http_req_failed{escenario:consulta}': ['rate<0.01'],
+  // Submétrica solo para contar las solicitudes medidas (excluye el calentamiento y el login de setup)
+  'http_reqs{escenario:consulta}': ['count>0'],
 };
 
 if (permitirEscritura) {
   thresholdsConfig['http_req_duration{escenario:ingreso}'] = ['p(95)<2000'];
   thresholdsConfig['http_req_failed{escenario:ingreso}'] = ['rate<0.01'];
+  thresholdsConfig['http_reqs{escenario:ingreso}'] = ['count>0'];
 }
 
 export const options = {
@@ -139,6 +142,9 @@ export default function (data) {
       const resIngreso = http.post(`${data.baseUrl}/api/v1/ingresos/registrar`, payloadIngreso, {
         headers,
         tags: { escenario: 'ingreso' },
+        // Tras el primer ingreso la bicicleta queda DENTRO y la API responde 409 (regla de negocio esperada),
+        // por lo que 409 no se cuenta como error de disponibilidad.
+        responseCallback: http.expectedStatuses(200, 409),
       });
 
       check(resIngreso, {

@@ -42,7 +42,9 @@ jobs:
           K6_PASSWORD: ${{ secrets.K6_PASSWORD }}
           K6_CODIGO_QR: ${{ secrets.K6_CODIGO_QR || vars.K6_CODIGO_QR }}
           K6_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura }}
-        run: k6 run tests/carga/rnf01-carga.js
+        run: |
+          mkdir -p tests/carga/resultados
+          k6 run tests/carga/rnf01-carga.js
 
       - name: Publicar resumen de prueba de carga
         if: always()
