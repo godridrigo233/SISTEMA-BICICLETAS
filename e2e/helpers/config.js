@@ -6,6 +6,9 @@
 
 export const config = {
   baseUrl: process.env.E2E_BASE_URL || 'http://localhost:5173',
+  // Modo solo lectura por defecto para salvaguardar la tabla auditoria_accesos del piloto real.
+  // true solo debe emplearse contra una base de datos de prueba desechable, nunca contra el piloto.
+  permitirEscritura: String(process.env.E2E_PERMITIR_ESCRITURA || 'false').toLowerCase() === 'true',
   usuarios: {
     estudiante: {
       correo: process.env.E2E_ESTUDIANTE_EMAIL || process.env.E2E_ESTUDIANTE_CORREO || '',
@@ -35,6 +38,7 @@ export const config = {
   datosPrueba: {
     // Identificador QR de bicicleta de prueba (por defecto toma el registro sintético S001)
     bicicletaQr: process.env.E2E_BICICLETA_QR || 'b0000000-0000-4000-8000-0000000000a1',
+    estudianteDni: process.env.E2E_ESTUDIANTE_DNI || '00000001',
     vigilanteCorreo: process.env.E2E_VIGILANTE_EMAIL || process.env.E2E_GARITERO_EMAIL || 'seed.garita1@ucsm.edu.pe',
   },
 };

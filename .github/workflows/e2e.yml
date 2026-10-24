@@ -11,6 +11,11 @@ on:
         required: false
         type: string
         default: ''
+      permitir_escritura:
+        description: 'Permitir operaciones de escritura (true/false). PRECAUCIÓN: true solo debe usarse contra base de datos de prueba, nunca contra el piloto.'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,14 +43,15 @@ jobs:
           cache-dependency-path: e2e/package-lock.json
 
       - name: Instalar dependencias E2E
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Instalar navegador Chromium y dependencias del sistema
-        run: npx playwright install --with-deps chromium
+        run: npm run install:browsers
 
       - name: Ejecutar pruebas E2E con Playwright
         env:
           E2E_BASE_URL: ${{ inputs.base_url != '' && inputs.base_url || secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+          E2E_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura != '' && inputs.permitir_escritura || vars.E2E_PERMITIR_ESCRITURA || 'false' }}
           E2E_ESTUDIANTE_EMAIL: ${{ secrets.E2E_ESTUDIANTE_EMAIL || vars.E2E_ESTUDIANTE_EMAIL }}
           E2E_ESTUDIANTE_PASSWORD: ${{ secrets.E2E_ESTUDIANTE_PASSWORD }}
           E2E_GARITERO_EMAIL: ${{ secrets.E2E_GARITERO_EMAIL || vars.E2E_GARITERO_EMAIL }}

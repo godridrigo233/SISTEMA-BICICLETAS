@@ -13,7 +13,6 @@ __pycache__/
 *.csv
 !database/seeds/*.csv
 !frontend/src/**/__fixtures__/*.csv
-!e2e/fixtures/*.csv
 
 # --- .NET ---
 bin/

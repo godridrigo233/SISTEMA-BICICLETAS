@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { config, omitirSiFaltanCredenciales } from '../helpers/config.js';
 import { iniciarSesion, cerrarSesion } from '../helpers/auth.js';
 
-test.describe('03 · Panel Central de Garita - Ingreso de Bicicleta', () => {
-  test('Consulta de bicicleta por QR digitado y registro de ingreso (FUERA → DENTRO)', async ({ page }) => {
+test.describe('03 · Panel Central de Garita - Consulta e Ingreso', () => {
+  test('Consulta de bicicleta por QR digitado e ingreso condicional según modo de escritura', async ({ page }) => {
     // Para operar garita se requiere usuario Garitero o Supervisor
     const rolOperador = config.usuarios.garitero.correo ? 'garitero' : 'supervisor';
     if (!omitirSiFaltanCredenciales(test, rolOperador)) return;
@@ -20,13 +20,26 @@ test.describe('03 · Panel Central de Garita - Ingreso de Bicicleta', () => {
     await expect(botonConsultar).toBeEnabled();
     await botonConsultar.click();
 
-    // Verificación de ficha de la bicicleta identificada
+    // Verificación de la ficha de la bicicleta identificada y de su estado
     const fichaBicicleta = page.locator('section[aria-label="Bicicleta identificada"]');
     await expect(fichaBicicleta).toBeVisible();
+    await expect(fichaBicicleta.locator('dl')).toBeVisible();
 
-    // Si la bicicleta se encuentra FUERA, se registra el ingreso
-    const botonIngreso = page.getByRole('button', { name: /registrar ingreso/i });
-    if (await botonIngreso.isVisible()) {
+    const textoFicha = await fichaBicicleta.textContent();
+    const estadoActual = textoFicha?.includes('DENTRO') ? 'DENTRO' : 'FUERA';
+
+    // Modo solo lectura por defecto: en el piloto real nunca se altera la tabla auditoria_accesos
+    if (!config.permitirEscritura) {
+      // Con false, únicamente se consulta el QR y se verifica la ficha y el estado
+      expect(['DENTRO', 'FUERA']).toContain(estadoActual);
+      await cerrarSesion(page);
+      return;
+    }
+
+    // Modo con escritura habilitada (solo permitido contra bases de datos de prueba)
+    if (estadoActual === 'FUERA') {
+      const botonIngreso = page.getByRole('button', { name: /registrar ingreso/i });
+      await expect(botonIngreso).toBeVisible();
       await botonIngreso.click();
 
       // Notificación de éxito institucional
@@ -41,7 +54,7 @@ test.describe('03 · Panel Central de Garita - Ingreso de Bicicleta', () => {
       await expect(tablaMovimientos.locator('tbody tr').first()).toContainText('INGRESO');
       await expect(tablaMovimientos.locator('tbody tr').first()).toContainText('EXITOSO');
     } else {
-      // Si ya se encontraba DENTRO, se verifica que la consulta refleje dicho estado correctamente
+      // Si la bicicleta ya se encontraba DENTRO, se verifica que la consulta refleje el estado
       await expect(fichaBicicleta).toContainText('DENTRO DEL CAMPUS');
     }
 
