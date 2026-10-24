@@ -51,7 +51,7 @@ jobs:
       - name: Ejecutar pruebas E2E con Playwright
         env:
           E2E_BASE_URL: ${{ inputs.base_url != '' && inputs.base_url || secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
-          E2E_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura != '' && inputs.permitir_escritura || vars.E2E_PERMITIR_ESCRITURA || 'false' }}
+          E2E_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura && 'true' || 'false' }}  # solo el input manual habilita la escritura
           E2E_ESTUDIANTE_EMAIL: ${{ secrets.E2E_ESTUDIANTE_EMAIL || vars.E2E_ESTUDIANTE_EMAIL }}
           E2E_ESTUDIANTE_PASSWORD: ${{ secrets.E2E_ESTUDIANTE_PASSWORD }}
           E2E_GARITERO_EMAIL: ${{ secrets.E2E_GARITERO_EMAIL || vars.E2E_GARITERO_EMAIL }}
