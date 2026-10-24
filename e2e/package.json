@@ -1,0 +1,17 @@
+{
+  "name": "sistema-bicicletas-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pruebas E2E automatizadas con Playwright para el Sistema de Control de Acceso de Bicicletas UCSM",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "install:browsers": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}

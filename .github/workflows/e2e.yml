@@ -1,0 +1,73 @@
+# Pruebas de Extremo a Extremo (E2E) con Playwright contra el entorno de Staging.
+# Se ejecuta manualmente mediante workflow_dispatch, separado del pipeline de CI continuo.
+# Las credenciales de prueba se configuran en GitHub Secrets y nunca en el código.
+name: Pruebas E2E (Playwright)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL base de staging (opcional; si se omite utiliza E2E_BASE_URL de Secrets/Variables)'
+        required: false
+        type: string
+        default: ''
+      permitir_escritura:
+        description: 'Permitir operaciones de escritura (true/false). PRECAUCIÓN: true solo debe usarse contra base de datos de prueba, nunca contra el piloto.'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Suite E2E Staging (Chromium)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - name: Descargar código fuente
+        uses: actions/checkout@v5
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Instalar dependencias E2E
+        run: npm ci --ignore-scripts
+
+      - name: Instalar navegador Chromium y dependencias del sistema
+        run: npm run install:browsers
+
+      - name: Ejecutar pruebas E2E con Playwright
+        env:
+          E2E_BASE_URL: ${{ inputs.base_url != '' && inputs.base_url || secrets.E2E_BASE_URL || vars.E2E_BASE_URL }}
+          E2E_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura && 'true' || 'false' }}  # solo el input manual habilita la escritura
+          E2E_ESTUDIANTE_EMAIL: ${{ secrets.E2E_ESTUDIANTE_EMAIL || vars.E2E_ESTUDIANTE_EMAIL }}
+          E2E_ESTUDIANTE_PASSWORD: ${{ secrets.E2E_ESTUDIANTE_PASSWORD }}
+          E2E_GARITERO_EMAIL: ${{ secrets.E2E_GARITERO_EMAIL || vars.E2E_GARITERO_EMAIL }}
+          E2E_GARITERO_PASSWORD: ${{ secrets.E2E_GARITERO_PASSWORD }}
+          E2E_SUPERVISOR_EMAIL: ${{ secrets.E2E_SUPERVISOR_EMAIL || vars.E2E_SUPERVISOR_EMAIL }}
+          E2E_SUPERVISOR_PASSWORD: ${{ secrets.E2E_SUPERVISOR_PASSWORD }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL || vars.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_BICICLETA_QR: ${{ secrets.E2E_BICICLETA_QR || vars.E2E_BICICLETA_QR }}
+          CI: 'true'
+        run: npm test
+
+      - name: Publicar reporte HTML de Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-playwright
+          path: e2e/playwright-report
+          retention-days: 14
