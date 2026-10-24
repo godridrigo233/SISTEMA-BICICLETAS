@@ -24,13 +24,13 @@ sistema de bicicletas. Utiliza
 
 ### Variables requeridas
 
-Configurar las siguientes **variables de repositorio** (_Settings → Secrets
+Opcionalmente, configurar las siguientes **variables de repositorio** (también se aceptan como secretos); si no existen, se usan las URL públicas del piloto (_Settings → Secrets
 and variables → Actions → Variables_):
 
 | Variable        | Descripción                          | Ejemplo                             |
 | --------------- | ------------------------------------ | ----------------------------------- |
-| `ZAP_URL_SPA`   | URL pública de la SPA desplegada     | `https://bicicletas.example.com`    |
-| `ZAP_URL_API`   | URL pública de la API desplegada     | `https://api.bicicletas.example.com`|
+| `ZAP_URL_SPA`   | URL pública de la SPA desplegada (opcional) | `https://sistema-bicicletas.vercel.app` (por defecto) |
+| `ZAP_URL_API`   | URL pública de la API desplegada (opcional) | `https://sistema-bicicletas.onrender.com` (por defecto) |
 
 ---
 
