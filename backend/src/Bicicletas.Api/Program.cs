@@ -83,7 +83,26 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
+// Cabeceras de seguridad HTTP globales (OWASP ZAP / OWASP A05). Se registran con OnStarting para que
+// también acompañen a las respuestas de error generadas por UseExceptionHandler.
+app.Use(async (contexto, siguiente) =>
+{
+    contexto.Response.OnStarting(() =>
+    {
+        IHeaderDictionary cabeceras = contexto.Response.Headers;
+        cabeceras["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+        cabeceras["X-Content-Type-Options"] = "nosniff";
+        cabeceras["X-Frame-Options"] = "DENY";
+        cabeceras["Referrer-Policy"] = "no-referrer";
+        cabeceras["Cache-Control"] = "no-store";
+        return Task.CompletedTask;
+    });
+
+    await siguiente();
+});
+
 app.UseExceptionHandler();
+
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
