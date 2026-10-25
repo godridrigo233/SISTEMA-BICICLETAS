@@ -1,6 +1,6 @@
 # ID	Acción	Justificación
 # ──────────────────────────────────────────────────────────────
 # Archivo de reglas para OWASP ZAP Baseline Scan.
-# Cada línea sigue el formato:  <ID_ALERTA>\t<IGNORE|WARN|FAIL>\t<Justificación>
+# Cada línea sigue el formato:  <ID_PLUGIN>\t<IGNORE|INFO|WARN|FAIL>\t<Justificación>
 # Nota: ZAP solo acepta el ID del plugin (90004), que agrupa COEP y COOP; ignorarlo ocultaría COOP.
 # Por eso COEP (alerta 90004-2) se acepta y justifica en docs/seguridad/ESCANEO_ZAP.md, sin regla aquí.
