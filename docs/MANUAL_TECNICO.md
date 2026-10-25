@@ -42,7 +42,7 @@ El sistema aplica el principio de minimización de datos exigido por la **Ley N.
 * **Cómputo en el navegador:** La detección de rostros y la extracción del descriptor biométrico se ejecutan localmente en el navegador del operador o del usuario mediante la librería `face-api.js` (versión 0.22.2) y el modelo de detección `SSD MobileNetV1` (confianza mínima > 0.90).
 * **Descriptor de 128 dimensiones:** La captura biométrica genera únicamente un vector numérico de 128 valores de coma flotante (`FLOAT8[128]`).
 * **Decisión en el servidor:** El navegador transmite exclusivamente el vector numérico hacia la API mediante HTTPS. El servidor calcula la distancia euclidiana frente al descriptor de referencia previamente enrolado y valida si cumple con el umbral calibrado $\theta = 0.37$.
-* **No almacenamiento de imágenes:** Bajo ningún concepto se transmiten, procesan ni almacenan fotografías, fotogramas o imágenes de los rostros en el servidor ni en la base de datos. Los vectores transitorios de verificación se descartan de memoria tras la comparación.
+* **No almacenamiento de imágenes:** Bajo ningún concepto se transmiten, procesan ni almacenan fotografías, fotogramas o imágenes de los rostros en el servidor ni en la base de datos. Los vectores transitorios de verificación se descartan de memoria tras la comparación; la única excepción es el modo de investigación de la Fase B (sección 3.1, `V006`), que conserva descriptores seudonimizados de participantes con consentimiento hasta concluir el estudio.
 
 ### 1.3. Control de Acceso Basado en Roles (RBAC)
 El sistema define cuatro roles jerárquicos identificados de manera numérica y vinculados al *claim* `id_rol` en el token JWT:
@@ -116,6 +116,8 @@ Por razones estrictas de seguridad, **nunca se versionan valores reales, contras
 * `Jwt__MinutosVigencia`: Duración en minutos de la vigencia del token (por defecto: 30 minutos).
 * `Cors__OrigenPermitido`: Lista de orígenes web autorizados para interactuar con la API mediante CORS, separados por comas.
 * `Biometria__UmbralTheta`: Valor numérico del umbral de decisión euclidiana $\theta$ (por defecto: `0.37`).
+  > [!WARNING]
+  > No debe modificarse: el valor 0.37 fue calibrado con el Dataset Primario Local UCSM (Fase A) para el detector SSD MobileNetV1 y el modelo face-api.js 0.22.2. Alterar el umbral, el detector o el modelo invalida la calibración.
 * `Investigacion__FaseBHabilitada`: Booleano (`true`/`false`) que habilita el registro de telemetría experimental para la Fase B de investigación.
 
 #### Entornos de Automatización y Pruebas (CI / E2E / Carga)
@@ -153,7 +155,7 @@ El esquema relacional del sistema reside en `database/migrations/`. Los archivos
 | `V003__cc08_cc10_conciliacion.sql` | Define procedimientos almacenados transaccionales ACID (`conciliar_contingencia`, `conciliar_lote`), la vista analítica `v_monitoreo_auditoria` y revoca privilegios innecesarios a roles no administrativos. |
 | `V004__seguridad_rls.sql` | Activa la Seguridad a Nivel de Fila (*Row Level Security* - RLS) en todas las tablas sin habilitar políticas permisivas para roles anónimos (`anon`) ni autenticados (`authenticated`), mitigando el riesgo OWASP A01 y restringiendo el acceso exclusivamente a la API. |
 | `V005__catalogo_roles.sql` | Inicializa el catálogo maestro de roles RBAC (1: Estudiante, 2: Garitero, 3: Supervisor, 4: Administrador). |
-| `V006__investigacion_fase_b.sql` | Crea la tabla `investigacion_capturas` para registrar vectores generados, distancias calculadas y latencias de inferencia durante la experimentación de la Fase B (operativa únicamente si se activa el modo de investigación). |
+| `V006__investigacion_fase_b.sql` | Crea la tabla `investigacion_capturas` para registrar, durante la experimentación de la Fase B, descriptores seudonimizados (`FLOAT8[128]`), distancias euclidianas y latencias, solo de participantes con consentimiento informado. Opera únicamente si se activa el modo de investigación (`Investigacion__FaseBHabilitada`) y debe vaciarse al concluir el estudio. |
 
 ### 3.2. Ejecución de Migraciones
 
@@ -217,7 +219,7 @@ Se activa ante cualquier evento de `push` a cualquier rama, en solicitudes de ex
 * **Umbrales de Calidad (RNF-01):**
   * `http_req_duration{escenario:consulta}`: Percentil 95 menor a 2000 ms (`p(95) < 2000`).
   * `http_req_failed{escenario:consulta}`: Tasa de fallos menor al 1 % (`rate < 0.01`).
-  * Solicitudes exitosas mayores a 0 (`count > 0`).
+  * Al menos una solicitud ejecutada en el escenario (`http_reqs{escenario:consulta}`: `count > 0`), lo que impide aprobar el ensayo sin tráfico real.
 * **Resultados:** Los reportes generados se consolidan en la carpeta `tests/carga/resultados/` y se almacenan como artefacto con retención de 14 días.
 
 ### 4.4. Escaneo de Seguridad OWASP ZAP (`seguridad-zap.yml`)
@@ -225,7 +227,7 @@ Se activa ante cualquier evento de `push` a cualquier rama, en solicitudes de ex
 * **Modalidad:** Escaneo pasivo no invasivo sin credenciales ni transacciones de escritura.
 * **Objetivos:** Analiza tanto la SPA como la API. Admite la parametrización de objetivos mediante las variables/secretos opcionales `ZAP_URL_SPA` y `ZAP_URL_API` (con valores por defecto hacia las URLs desplegadas).
 * **Gestión de reglas:** Utiliza el archivo `.zap/reglas.tsv` para clasificar reglas y justificar excepciones.
-* **Artefactos y Documentación:** Publica reportes en formato HTML, JSON y Markdown (retención 14 días). El detalle de los hallazgos y su tratamiento se documentan en [ESCANEO_ZAP.md](file:///C:/Users/USER/SISTEMA-BICICLETAS/docs/seguridad/ESCANEO_ZAP.md).
+* **Artefactos y Documentación:** Publica reportes en formato HTML, JSON y Markdown (retención 14 días). El detalle de los hallazgos y su tratamiento se documentan en [ESCANEO_ZAP.md](seguridad/ESCANEO_ZAP.md).
 
 ### 4.5. Flujo de Respaldo Diario de Supabase (`backup-supabase.yml`)
 * **Propósito:** Genera respaldos lógicos diarios automatizados de la base de datos de producción mediante `pg_dump` de PostgreSQL 17 (programado a las 03:00 UTC / 22:00 hora de Lima y disponible bajo demanda).
@@ -254,7 +256,7 @@ Definidas en el enrutamiento perimetral para responder en todas las rutas de la 
 * **`Access-Control-Allow-Origin`:** `https://sistema-bicicletas.vercel.app` (restringe las respuestas autorizadas).
 
 ### 5.2. Middleware en la API (`backend/src/Bicicletas.Api/Program.cs`)
-Inyectado de manera global en el cauce de procesamiento (*pipeline*) de ASP.NET Core mediante un middleware registrado previo a `UseCors`, garantizando su presencia en respuestas exitosas y de error:
+Inyectado de manera global en el cauce de procesamiento (*pipeline*) de ASP.NET Core mediante un middleware registrado antes de `UseExceptionHandler` (y, por tanto, antes de `UseCors`) que aplica las cabeceras con `Response.OnStarting`, garantizando su presencia en respuestas exitosas y de error:
 
 * **`Strict-Transport-Security` (HSTS):** `max-age=31536000; includeSubDomains` (fuerza comunicación TLS estricta por un año continuo).
 * **`X-Content-Type-Options`:** `nosniff` (impide *MIME-sniffing* en respuestas de la API).
@@ -294,11 +296,11 @@ Implementado en el módulo `frontend/src/biometria/extractorFacial.js` a través
 ## 7. Solución de Problemas Frecuentes
 
 ### 7.1. Primera Petición Lenta por Arranque en Frío de Render
-* **Síntoma:** Al abrir la aplicación tras un periodo prolongado de inactividad, la primera solicitud de autenticación o consulta puede experimentar una latencia de entre 30 y 50 segundos.
+* **Síntoma:** Al abrir la aplicación tras un periodo prolongado de inactividad, la primera solicitud de autenticación o consulta puede demorar varias decenas de segundos.
 * **Causa:** El contenedor de la API en Render suspende el proceso cuando no recibe tráfico para optimizar recursos en niveles de uso compartido o gratuitos (*cold start*).
 * **Solución:**
   1. El cliente web cuenta con un mecanismo que despierta la API de fondo (`despertarApi`) desde la carga de la pantalla de bienvenida.
-  2. Verificar que el endpoint `GET /health` responde con estado HTTP 200. Una vez activo el contenedor, el tiempo de respuesta retorna a valores inferiores a los 200 ms.
+  2. Verificar que el endpoint `GET /health` responde con estado HTTP 200. Una vez activo el contenedor, el tiempo de respuesta retorna a sus valores habituales.
 
 ### 7.2. Fallo de Inicio de Sesión en Vistas Previas de Vercel por Bloqueo CORS
 * **Síntoma:** Las ramas de vista previa generadas por Vercel (URLs dinámicas tipo `https://sistema-bicicletas-git-<rama>.vercel.app`) cargan la interfaz pero fallan al enviar credenciales, reportando error de red (*Network Error* / CORS) en la consola del navegador.
