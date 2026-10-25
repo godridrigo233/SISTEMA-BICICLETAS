@@ -62,7 +62,7 @@ El archivo [`.zap/reglas.tsv`](../../.zap/reglas.tsv) permite documentar
 falsos positivos justificados y riesgos aceptados. Formato de cada línea:
 
 ```
-<ID_ALERTA>	<IGNORE|WARN|FAIL>	<Justificación>
+<ID_PLUGIN>	<IGNORE|INFO|WARN|FAIL>	<Justificación>
 ```
 
 > [!IMPORTANT]
@@ -83,7 +83,7 @@ falsos positivos justificados y riesgos aceptados. Formato de cada línea:
 | **90004-3** | Insufficient Site Isolation Against Spectre (COOP) | Baja | `https://sistema-bicicletas.vercel.app` | Agregar `Cross-Origin-Opener-Policy: same-origin` en `vercel.json` | Corregido (PR actual) |
 | **10035** | Strict-Transport-Security Header Not Set | Baja | `https://sistema-bicicletas.onrender.com` | Middleware global con `HSTS: max-age=31536000; includeSubDomains` en `Program.cs` | Corregido (PR actual) |
 | **10049** | Storable and Cacheable Content | Baja | `https://sistema-bicicletas.onrender.com` | Middleware global con `Cache-Control: no-store` en `Program.cs` | Corregido (PR actual) |
-| **90004-2** | Cross-Origin-Embedder-Policy (COEP) Header Not Set | Baja | `https://sistema-bicicletas.vercel.app` | Ninguna; se agrega regla `IGNORE` en `.zap/reglas.tsv` | Aceptado: puede bloquear recursos y la cámara; beneficio marginal |
+| **90004-2** | Cross-Origin-Embedder-Policy (COEP) Header Not Set | Baja | `https://sistema-bicicletas.vercel.app` | Ninguna; sin regla en `.zap/reglas.tsv` porque ZAP agrupa COEP y COOP en el plugin 90004 | Aceptado: puede bloquear recursos y la cámara; beneficio marginal |
 | **10015** | Re-examine Cache-control Directives | Informativa | `https://sistema-bicicletas.vercel.app` | Contenido estático distribuido públicamente vía CDN | Informativo: contenido estático público, sin acción |
 | **10050** | Retrieved from Cache | Informativa | `https://sistema-bicicletas.vercel.app` | Caché estándar de navegador y CDN para assets estáticos | Informativo: contenido estático público, sin acción |
 | **10049-2** | Storable but Non-Cacheable Content | Informativa | `https://sistema-bicicletas.vercel.app` | Comportamiento estándar de recursos estáticos en CDN | Informativo: contenido estático público, sin acción |
