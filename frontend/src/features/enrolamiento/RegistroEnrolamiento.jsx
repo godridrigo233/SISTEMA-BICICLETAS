@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   User,
 } from 'lucide-react';
-import { cargarModelos, extraerDescriptor, obtenerFaceApi } from '../../biometria/extractorFacial';
+import { extraerDescriptor, prepararBiometria } from '../../biometria/extractorFacial';
 import { mensajeDeError } from '../../services/apiClient';
 import { enrolar, obtenerPerfil, registrarBicicleta } from '../../services/estudianteService';
 import { descargarSticker, nombreAbreviado, qrComoDataUrl } from './sticker';
@@ -38,6 +38,8 @@ export default function RegistroEnrolamiento() {
 
   useEffect(() => {
     obtenerPerfil().then(setPerfil).catch((e) => setError(mensajeDeError(e, 'No se pudo cargar su perfil.')));
+    // Precarga de los modelos mientras el estudiante llena el formulario (no activa la cámara).
+    void prepararBiometria().catch(() => {});
   }, []);
 
   // La cámara solo se activa tras aceptar el consentimiento y se apaga al salir (Ley N.º 29733).
@@ -47,8 +49,7 @@ export default function RegistroEnrolamiento() {
     void (async () => {
       try {
         setCamara('cargando');
-        faceapi.current = await obtenerFaceApi();
-        await cargarModelos(faceapi.current);
+        faceapi.current = await prepararBiometria();
         flujo.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
@@ -261,7 +262,7 @@ export default function RegistroEnrolamiento() {
               {camara === 'cargando' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
                   <RefreshCw size={16} className="girando" aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
-                  <p role="status" style={{ margin: 0, fontWeight: 600 }}>Cargando cámara y modelos…</p>
+                  <p role="status" style={{ margin: 0, fontWeight: 600 }}>Preparando el reconocimiento facial (más lento solo la primera vez)…</p>
                 </div>
               )}
 

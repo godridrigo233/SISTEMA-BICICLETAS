@@ -11,7 +11,7 @@ import {
   UserCheck,
   XCircle,
 } from 'lucide-react';
-import { cargarModelos, extraerDescriptor, obtenerFaceApi } from '../../biometria/extractorFacial';
+import { extraerDescriptor, prepararBiometria, sinAceleracionGrafica } from '../../biometria/extractorFacial';
 import { autorizarRetiro, retiroManual } from '../../services/garitaService';
 import { mensajeDeError } from '../../services/apiClient';
 
@@ -29,13 +29,14 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
   const [derivable, setDerivable] = useState(false);
   const [dni, setDni] = useState('');
   const [manual, setManual] = useState(false);
+  const [lento, setLento] = useState(false);
 
   useEffect(() => {
     let activo = true;
     async function preparar() {
       try {
-        faceapi.current = await obtenerFaceApi();
-        await cargarModelos(faceapi.current);
+        faceapi.current = await prepararBiometria();
+        if (activo) setLento(sinAceleracionGrafica(faceapi.current));
         flujo.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
@@ -123,8 +124,15 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
       {fase === 'preparando' && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12 }}>
           <RefreshCw size={18} className="girando" aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
-          <p role="status" style={{ margin: 0, fontWeight: 600 }}>Cargando cámara y modelos…</p>
+          <p role="status" style={{ margin: 0, fontWeight: 600 }}>Preparando el reconocimiento facial (más lento solo la primera vez)…</p>
         </div>
+      )}
+
+      {lento && (
+        <p className="aviso" role="status">
+          <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+          <span>La aceleración gráfica del navegador está desactivada y la verificación será lenta. En Chrome, active «Usar aceleración de gráficos cuando esté disponible» (Configuración → Sistema) y reinicie el navegador.</span>
+        </p>
       )}
 
       {mensaje && (

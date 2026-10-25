@@ -11,6 +11,8 @@ vi.mock('../../services/estudianteService', () => ({
 }));
 
 vi.mock('../../biometria/extractorFacial', () => ({
+  prepararBiometria: vi.fn().mockResolvedValue({}),
+  sinAceleracionGrafica: vi.fn().mockReturnValue(false),
   obtenerFaceApi: vi.fn().mockResolvedValue({}),
   cargarModelos: vi.fn().mockResolvedValue([]),
   extraerDescriptor: vi.fn(),
