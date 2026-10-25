@@ -2,5 +2,4 @@
 # ──────────────────────────────────────────────────────────────
 # Archivo de reglas para OWASP ZAP Baseline Scan.
 # Cada línea sigue el formato:  <ID_ALERTA>\t<IGNORE|WARN|FAIL>\t<Justificación>
-# No se ignora ninguna regla en este PR inicial.
-# Los falsos positivos justificados se documentarán aquí tras la primera ejecución.
+90004-2	IGNORE	Aceptado: puede bloquear recursos y la cámara; beneficio marginal

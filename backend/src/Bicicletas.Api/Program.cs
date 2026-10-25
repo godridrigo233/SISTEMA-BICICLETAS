@@ -84,6 +84,19 @@ builder.Services.AddControllers();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+
+// Cabeceras de seguridad HTTP globales (OWASP ZAP / OWASP A05)
+app.Use(async (contexto, siguiente) =>
+{
+    contexto.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    contexto.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    contexto.Response.Headers.Append("X-Frame-Options", "DENY");
+    contexto.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    contexto.Response.Headers.Append("Cache-Control", "no-store");
+
+    await siguiente();
+});
+
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
