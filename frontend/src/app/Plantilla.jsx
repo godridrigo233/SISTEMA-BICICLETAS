@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { NOMBRE_SISTEMA } from './constantes';
 import { useSesion } from '../features/auth/SesionContext';
+import { useConexion } from '../services/conexion';
 import { MENU_POR_ROL, NOMBRE_ROL, ROL } from './rutasPorRol';
 
 /** Mapeo de íconos para las opciones del menú institucional. */
@@ -104,6 +105,7 @@ export default function Plantilla() {
     setMovilAbierta(false);
   }, [pathname]);
 
+  const conectado = useConexion();
   const mensaje = aviso || state?.aviso;
   const esGaritero = sesion?.idRol === ROL.GARITERO;
   const itemsMenu = MENU_POR_ROL[sesion?.idRol] ?? [];
@@ -126,9 +128,7 @@ export default function Plantilla() {
             </div>
           </div>
           <div className="barra-derecha">
-            <span className="etiqueta badge-dentro" style={{ border: 'none', background: 'rgba(255,255,255,0.18)', color: '#ffffff' }}>
-              ● Garita Operativa
-            </span>
+            <IndicadorConexion conectado={conectado} siempre />
             <div className="usuario-dropdown-contenedor" ref={refMenuUsuario}>
               <button
                 type="button"
@@ -168,7 +168,7 @@ export default function Plantilla() {
             </div>
             <button
               type="button"
-              className="boton"
+              className="boton d-escritorio"
               onClick={cerrarSesion}
               style={{ borderColor: 'rgba(255,255,255,0.5)', color: '#ffffff', background: 'transparent' }}
             >
@@ -259,6 +259,7 @@ export default function Plantilla() {
           </div>
 
           <div className="barra-derecha">
+            <IndicadorConexion conectado={conectado} />
             {/* Menú de Usuario Desplegable */}
             <div className="usuario-dropdown-contenedor" ref={refMenuUsuario}>
               <button
@@ -304,7 +305,7 @@ export default function Plantilla() {
             {/* Botón de acceso directo para Cerrar sesión */}
             <button
               type="button"
-              className="boton"
+              className="boton d-escritorio"
               onClick={cerrarSesion}
               title="Finalizar sesión en el sistema"
             >
@@ -323,5 +324,23 @@ export default function Plantilla() {
         <Outlet />
       </div>
     </div>
+  );
+}
+
+/**
+ * Estado de la conexión con el servidor (Nielsen H1). En la garita se muestra siempre;
+ * en las demás pantallas solo cuando se pierde la conexión.
+ */
+function IndicadorConexion({ conectado, siempre = false }) {
+  if (conectado && !siempre) return null;
+  return (
+    <span
+      className={`indicador-conexion ${conectado ? 'en-linea' : 'sin-conexion'}`}
+      role="status"
+      title={conectado ? 'Conectado con el servidor' : 'Sin conexión con el servidor: registre los movimientos en la plantilla de contingencia'}
+    >
+      <span className="punto" aria-hidden="true" />
+      {conectado ? 'En línea' : 'Sin conexión: use la plantilla de contingencia'}
+    </span>
   );
 }

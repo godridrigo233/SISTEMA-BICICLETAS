@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { marcarConexion } from './conexion';
 
 // Cliente único de la API REST. El frontend nunca accede directamente a Supabase.
 // 4 s sin respuesta → modo degradado y protocolo de contingencia (P05 1.8.1).
@@ -14,8 +15,12 @@ export function configurarInterceptores({ obtenerToken, cerrarSesion, avisar }) 
   });
 
   api.interceptors.response.use(
-    (respuesta) => respuesta,
+    (respuesta) => {
+      marcarConexion(true);
+      return respuesta;
+    },
     (error) => {
+      marcarConexion(Boolean(error.response));
       if (!error.response) {
         avisar('Sin conexión con el servidor. Aplique el protocolo de contingencia.');
       } else if (error.response.status === 401 && !esLogin(error.config)) {

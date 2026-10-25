@@ -21,6 +21,8 @@ import { mensajeDeError } from '../../services/apiClient';
  */
 export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, permiteManual = false }) {
   const video = useRef(null);
+  const seccion = useRef(null);
+  const botonCapturar = useRef(null);
   const flujo = useRef(null);
   const faceapi = useRef(null);
   const [fase, setFase] = useState('preparando');
@@ -54,6 +56,15 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
       flujo.current?.getTracks().forEach((pista) => pista.stop());
     };
   }, []);
+
+  // Nielsen H7: la verificación queda a la vista y «Capturar y verificar» recibe el foco, de modo que
+  // el vigilante no necesita desplazarse ni usar el ratón (Enter captura).
+  useEffect(() => {
+    seccion.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+  }, []);
+  useEffect(() => {
+    if (fase === 'lista') botonCapturar.current?.focus();
+  }, [fase]);
 
   async function capturar() {
     setFase('verificando');
@@ -104,7 +115,7 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
   const porcentaje = resultado ? Math.min(100, (resultado.distanciaEuclidiana / 1) * 100) : 0;
 
   return (
-    <section className="ficha" aria-label="Verificación facial del retiro" style={{ marginTop: 16, background: '#fafbfa', border: '1px solid var(--verde-borde)' }}>
+    <section ref={seccion} className="ficha" aria-label="Verificación facial del retiro" style={{ marginTop: 16, background: '#fafbfa', border: '1px solid var(--verde-borde)' }}>
       <h2>
         <ScanFace size={22} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
         Verificación facial · Retiro
@@ -144,13 +155,13 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
 
       {/* Barra medidora con zona verde (θ ≤ umbral) y zona roja */}
       {resultado && (
-        <div className="medidor" aria-label="Distancia euclidiana">
+        <div className="medidor" aria-label="Diferencia entre el rostro capturado y el registrado">
           <div className="medidor-barra">
             <span style={{ width: `${porcentaje}%` }} />
           </div>
           <p>
-            <span>Distancia: <strong>{resultado.distanciaEuclidiana.toFixed(2)}</strong></span>
-            <span>Umbral θ ≤ {resultado.umbralTheta}</span>
+            <span>Diferencia con el rostro registrado: <strong>{resultado.distanciaEuclidiana.toFixed(2)}</strong></span>
+            <span>Se acepta hasta {resultado.umbralTheta}</span>
           </p>
         </div>
       )}
@@ -160,7 +171,7 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
           <p className="alerta" role="alert">
             <XCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
             <span>
-              Retiro denegado: el rostro no coincide ({resultado.distanciaEuclidiana.toFixed(2)}). La bicicleta permanece DENTRO; el intento quedó registrado.
+              Retiro denegado: el rostro no coincide con el del titular. La bicicleta permanece DENTRO y el intento quedó registrado.
             </span>
           </p>
           {resultado.alertaRevisionBiometrica && (
@@ -187,11 +198,15 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
                 Derivar al supervisor
               </button>
             )}
+            <button type="button" className="boton" onClick={alCancelar}>
+              Cancelar
+            </button>
           </div>
         </>
       ) : (
         <div className="con-boton" style={{ marginTop: 12 }}>
           <button
+            ref={botonCapturar}
             type="button"
             className="boton boton-primario"
             onClick={capturar}

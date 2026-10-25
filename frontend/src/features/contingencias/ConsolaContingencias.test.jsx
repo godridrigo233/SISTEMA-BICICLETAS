@@ -35,7 +35,7 @@ describe('W3 · Consola de Regularización', () => {
 
     expect(await screen.findByText('✗ El DNI debe tener 8 dígitos.')).toBeInTheDocument();
     expect(servicio.previsualizarCsv).toHaveBeenCalledWith(expect.stringContaining('E-2;17/10/2026 10:20;RETIRO;qr2;4512780'));
-    expect(screen.getByText('1 listas · 1 con error')).toBeInTheDocument();
+    expect(screen.getByText('1 lista · 1 con error')).toBeInTheDocument();
   });
 
   it('corrige la fila con error en la misma vista previa y la vuelve a validar', async () => {
@@ -63,15 +63,15 @@ describe('W3 · Consola de Regularización', () => {
     render(<ConsolaContingencias />);
     await usuario.upload(screen.getByLabelText(/Archivo CSV/), new File([CSV], 'contingencia.csv', { type: 'text/csv' }));
 
-    await usuario.click(await screen.findByRole('button', { name: 'Importar y conciliar 1 filas' }));
+    await usuario.click(await screen.findByRole('button', { name: 'Importar y conciliar 1 fila' }));
     const dialogo = screen.getByRole('dialog');
-    expect(dialogo).toHaveTextContent('¿Importar y conciliar 1 movimientos?');
-    expect(dialogo).toHaveTextContent('1 filas con error no se cargarán');
+    expect(dialogo).toHaveTextContent('¿Importar y conciliar 1 movimiento?');
+    expect(dialogo).toHaveTextContent('1 fila con error no se cargará');
     await usuario.click(within(dialogo).getByRole('button', { name: 'Confirmar' }));
 
     expect(servicio.importarCsv).toHaveBeenCalledWith(expect.stringContaining('folio;fecha_hora'));
     expect(servicio.conciliarLote).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText(/Se importaron 1 filas y se procesó el lote: 2 CONCILIADO · 0 OBSERVADO · 0 conflictos\. 1 filas con error no se cargaron/)).toBeInTheDocument();
+    expect(await screen.findByText(/Se importó 1 fila y se procesó el lote: 2 CONCILIADO · 0 OBSERVADO · 0 conflictos\. 1 fila con error no se cargó/)).toBeInTheDocument();
   });
 
   it('si la conciliación falla tras importar, lo informa y deja las filas en el lote', async () => {
@@ -81,9 +81,9 @@ describe('W3 · Consola de Regularización', () => {
     const usuario = userEvent.setup();
     render(<ConsolaContingencias />);
     await usuario.upload(screen.getByLabelText(/Archivo CSV/), new File([CSV], 'contingencia.csv', { type: 'text/csv' }));
-    await usuario.click(await screen.findByRole('button', { name: 'Importar y conciliar 1 filas' }));
+    await usuario.click(await screen.findByRole('button', { name: 'Importar y conciliar 1 fila' }));
     await usuario.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Confirmar' }));
-    expect(await screen.findByText(/Se importaron 1 filas, pero no se pudo conciliar el lote/)).toBeInTheDocument();
+    expect(await screen.findByText(/Se importó 1 fila, pero no se pudo conciliar el lote/)).toBeInTheDocument();
   });
 
   it('un archivo con otro encabezado se envía tal cual para que el servidor explique el error', async () => {
@@ -127,7 +127,7 @@ describe('W3 · Consola de Regularización', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Conciliar lote (orden cronológico)' }));
     const dialogo = screen.getByRole('dialog');
-    expect(dialogo).toHaveTextContent('¿Conciliar los 1 movimientos pendientes?');
+    expect(dialogo).toHaveTextContent('¿Conciliar el movimiento pendiente?');
     await usuario.click(within(dialogo).getByRole('button', { name: 'Confirmar' }));
     expect(await screen.findByText(/Lote procesado: 1 CONCILIADO · 1 OBSERVADO · 0 conflictos/)).toBeInTheDocument();
   });

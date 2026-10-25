@@ -36,6 +36,9 @@ describe('W4 · Registro y Enrolamiento (CU-01)', () => {
     const enviar = await screen.findByRole('button', { name: 'Completar registro' });
     expect(enviar).toBeDisabled();
     expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+    const pendientes = screen.getByRole('list', { name: 'Pendiente para completar el registro' });
+    expect(pendientes).toHaveTextContent('Número de marco (pendiente)');
+    expect(pendientes).toHaveTextContent('Capturar su rostro (pendiente)');
 
     await usuario.type(screen.getByLabelText(/Número de marco/), 'wtu123');
     await usuario.type(screen.getByLabelText(/Marca y modelo/), 'Trek');
@@ -44,8 +47,9 @@ describe('W4 · Registro y Enrolamiento (CU-01)', () => {
 
     await usuario.click(screen.getByRole('checkbox'));
     await usuario.click(await screen.findByRole('button', { name: 'Capturar rostro' }));
-    expect(await screen.findByText(/128 \/ 128/)).toBeInTheDocument();
+    expect(await screen.findByText(/Rostro capturado correctamente/)).toBeInTheDocument();
     expect(enviar).toBeEnabled();
+    expect(screen.queryByRole('list', { name: 'Pendiente para completar el registro' })).not.toBeInTheDocument();
   });
 
   it('registra la bicicleta, envía el descriptor y muestra el QR para descargar', async () => {
@@ -57,7 +61,7 @@ describe('W4 · Registro y Enrolamiento (CU-01)', () => {
     await usuario.selectOptions(screen.getByLabelText(/Color/), 'Rojo');
     await usuario.click(screen.getByRole('checkbox'));
     await usuario.click(await screen.findByRole('button', { name: 'Capturar rostro' }));
-    await screen.findByText(/128 \/ 128/);
+    await screen.findByText(/Rostro capturado correctamente/);
     await usuario.click(screen.getByRole('button', { name: 'Completar registro' }));
 
     expect(await screen.findByText(/Registro completado/)).toBeInTheDocument();

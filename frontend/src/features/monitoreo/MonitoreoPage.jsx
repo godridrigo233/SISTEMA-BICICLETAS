@@ -16,7 +16,7 @@ import {
   Zap,
 } from 'lucide-react';
 import Paginador from '../../componentes/Paginador';
-import { fechaPeru } from '../../componentes/formato';
+import { fechaPeru, horaPeru } from '../../componentes/formato';
 import { mensajeDeError } from '../../services/apiClient';
 import { consultarEventos, exportarCsv, obtenerAlertasBiometricas, obtenerResumen } from '../../services/monitoreoService';
 
@@ -33,7 +33,7 @@ function iconoKpi(titulo) {
     case 'Movimientos manuales hoy': return <UserCheck {...props} style={{ color: '#b45309' }} />;
     case 'Contingencias por conciliar': return <Clock {...props} style={{ color: '#c2410c' }} />;
     case 'Alertas de revisión biométrica': return <AlertTriangle {...props} style={{ color: 'var(--rojo-error)' }} />;
-    case 'Latencia promedio hoy': return <Zap {...props} style={{ color: 'var(--verde-ucsm)' }} />;
+    case 'Tiempo promedio de verificación hoy': return <Zap {...props} style={{ color: 'var(--verde-ucsm)' }} />;
     default: return <Activity {...props} />;
   }
 }
@@ -49,6 +49,7 @@ export default function MonitoreoPage() {
   const [exportando, setExportando] = useState(false);
   const [alertas, setAlertas] = useState([]);
   const [cargando, setCargando] = useState(false);
+  const [actualizado, setActualizado] = useState(null);
 
   const cargar = useCallback(async () => {
     setError('');
@@ -60,6 +61,7 @@ export default function MonitoreoPage() {
       setResumen(kpi);
       setAlertas(revision ?? []);
       setPagina(eventos);
+      setActualizado(horaPeru());
     } catch (e) {
       setError(mensajeDeError(e, 'No se pudo cargar el monitoreo.'));
     } finally {
@@ -68,6 +70,23 @@ export default function MonitoreoPage() {
   }, [aplicados, numero]);
 
   useEffect(() => { void cargar(); }, [cargar]);
+
+  // Nielsen H1: los indicadores del día se refrescan solos cada minuto (sin tocar los filtros ni la página
+  // de eventos) y la pantalla indica la hora de la última actualización.
+  useEffect(() => {
+    const id = setInterval(async () => {
+      if (document.hidden) return;
+      try {
+        const [kpi, revision] = await Promise.all([obtenerResumen(), obtenerAlertasBiometricas()]);
+        setResumen(kpi);
+        setAlertas(revision ?? []);
+        setActualizado(horaPeru());
+      } catch {
+        // el aviso de conexión lo muestra la plantilla; se reintenta en el siguiente minuto
+      }
+    }, 60000);
+    return () => clearInterval(id);
+  }, []);
 
   const rangoInvalido = filtros.desde && filtros.hasta && filtros.desde > filtros.hasta;
   const cambiar = (campo) => (e) => setFiltros((f) => ({ ...f, [campo]: e.target.value }));
@@ -92,7 +111,7 @@ export default function MonitoreoPage() {
     ['Movimientos manuales hoy', resumen.movimientosManualesHoy],
     ['Contingencias por conciliar', resumen.contingenciasPendientes],
     ['Alertas de revisión biométrica', resumen.alertasRevisionBiometrica ?? 0],
-    ['Latencia promedio hoy', resumen.latenciaPromedioMsHoy == null ? '—' : `${(resumen.latenciaPromedioMsHoy / 1000).toFixed(2)} s`],
+    ['Tiempo promedio de verificación hoy', resumen.latenciaPromedioMsHoy == null ? '—' : `${(resumen.latenciaPromedioMsHoy / 1000).toFixed(2)} s`],
   ] : [];
 
   return (
@@ -102,13 +121,16 @@ export default function MonitoreoPage() {
         <div>
           <h1>Monitoreo y Reportes</h1>
           <p className="ayuda" style={{ marginTop: -8 }}>
-            Panel ejecutivo e indicadores de rendimiento operativo en tiempo real
+            Indicadores del día y registro de eventos de la garita. Los indicadores se actualizan cada minuto.
           </p>
         </div>
-        <button type="button" className="boton" onClick={cargar} disabled={cargando}>
-          <RefreshCw size={18} className={cargando ? 'girando' : ''} aria-hidden="true" />
-          Actualizar
-        </button>
+        <div className="con-boton">
+          {actualizado && <span className="ayuda" role="status">Actualizado a las {actualizado}</span>}
+          <button type="button" className="boton" onClick={cargar} disabled={cargando}>
+            <RefreshCw size={18} className={cargando ? 'girando' : ''} aria-hidden="true" />
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Grid de KPIs con íconos institucionales */}
@@ -258,8 +280,8 @@ export default function MonitoreoPage() {
                 <th>Tipo</th>
                 <th>Resultado</th>
                 <th>Registro</th>
-                <th>Distancia</th>
-                <th>Latencia</th>
+                <th title="Diferencia entre el rostro capturado y el registrado; se acepta hasta 0.37">Diferencia facial</th>
+                <th title="Tiempo de la verificación en la garita">Tiempo</th>
                 <th>Bicicleta</th>
                 <th>Cód. univ.</th>
                 <th>Operador</th>
@@ -294,7 +316,7 @@ export default function MonitoreoPage() {
                   <td>
                     {e.latenciaMs == null ? '—' : (
                       <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
-                        {e.latenciaMs} ms
+                        {(e.latenciaMs / 1000).toFixed(2)} s
                       </span>
                     )}
                   </td>

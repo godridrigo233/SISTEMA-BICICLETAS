@@ -17,7 +17,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import Confirmacion from '../../componentes/Confirmacion';
-import { fechaPeru } from '../../componentes/formato';
+import { contar, fechaPeru } from '../../componentes/formato';
 import { mensajeDeError } from '../../services/apiClient';
 import {
   conciliar,
@@ -143,16 +143,16 @@ export default function ConsolaContingencias() {
   // Un solo paso: importa las filas válidas y concilia el lote, tras una única confirmación.
   async function importarYConciliar() {
     const r = await importarCsv(contenido);
-    const noCargadas = r.conError ? ` ${r.conError} filas con error no se cargaron.` : '';
+    const noCargadas = r.conError ? ` ${contar(r.conError, 'fila')} con error no se ${r.conError === 1 ? 'cargó' : 'cargaron'}.` : '';
     cancelarArchivo();
     try {
       const l = await conciliarLote();
       avisar(
         l.observados || l.conflictos || r.conError ? 'aviso' : 'exito',
-        `Se importaron ${r.insertadas} filas y se procesó el lote: ${l.conciliados} CONCILIADO · ${l.observados} OBSERVADO · ${l.conflictos} conflictos.${noCargadas}${l.observados ? ' Resuelva los observados con «Revisar».' : ''}`,
+        `Se ${r.insertadas === 1 ? 'importó' : 'importaron'} ${contar(r.insertadas, 'fila')} y se procesó el lote: ${l.conciliados} CONCILIADO · ${l.observados} OBSERVADO · ${contar(l.conflictos, 'conflicto')}.${noCargadas}${l.observados ? ' Resuelva los observados con «Revisar».' : ''}`,
       );
     } catch (e) {
-      avisar('alerta', `Se importaron ${r.insertadas} filas, pero no se pudo conciliar el lote: ${mensajeDeError(e, 'reintente con «Conciliar lote».')}`);
+      avisar('alerta', `Se ${r.insertadas === 1 ? 'importó' : 'importaron'} ${contar(r.insertadas, 'fila')}, pero no se pudo conciliar el lote: ${mensajeDeError(e, 'reintente con «Conciliar lote».')}`);
     }
   }
 
@@ -181,7 +181,7 @@ export default function ConsolaContingencias() {
         const r = await conciliarLote();
         avisar(
           r.observados || r.conflictos ? 'aviso' : 'exito',
-          `Lote procesado: ${r.conciliados} CONCILIADO · ${r.observados} OBSERVADO · ${r.conflictos} conflictos. Los observados se resuelven con «Revisar»; los conflictos quedan PENDIENTE con el motivo.`,
+          `Lote procesado: ${r.conciliados} CONCILIADO · ${r.observados} OBSERVADO · ${contar(r.conflictos, 'conflicto')}. Los observados se resuelven con «Revisar»; los conflictos quedan PENDIENTE con el motivo.`,
         );
       } else {
         const r = await conciliar(confirmar.item.idContingencia);
@@ -261,7 +261,7 @@ export default function ConsolaContingencias() {
             {ocupado && !previa && <span className="ayuda" role="status">Validando…</span>}
           </div>
           <p className="ayuda">
-            Al elegir el archivo se valida automáticamente. Columnas: folio; fecha_hora; tipo; codigo (QR o N.º de marco); dni (solo retiro); vigilante. Separador «;» o «,», UTF-8.
+            Elija el archivo que generó el botón «Exportar CSV» de la plantilla de la garita; se revisa automáticamente al elegirlo. Formato: columnas folio, fecha_hora, tipo, codigo, dni (solo retiros) y vigilante, separadas por «;» o «,».
           </p>
         </div>
 
@@ -331,7 +331,7 @@ export default function ConsolaContingencias() {
             </div>
             <div className="con-boton" style={{ marginTop: 12 }}>
               <span className="etiqueta" style={{ padding: '6px 12px' }}>
-                {listas} listas · {previa.length - listas} con error
+                {contar(listas, 'lista')} · {previa.length - listas} con error
               </span>
               <button type="button" className="boton" onClick={cancelarArchivo}>
                 Cancelar
@@ -343,7 +343,7 @@ export default function ConsolaContingencias() {
                 disabled={listas === 0 || ocupado}
               >
                 <CheckCircle size={18} aria-hidden="true" />
-                Importar y conciliar {listas} filas
+                Importar y conciliar {contar(listas, 'fila')}
               </button>
             </div>
             <p className="ayuda" style={{ marginTop: 8 }}>
@@ -377,7 +377,7 @@ export default function ConsolaContingencias() {
           </div>
           <div className="campo">
             <label htmlFor="c-codigo">Código QR o N.º de marco *</label>
-            <input id="c-codigo" maxLength={60} value={fila.codigo} onChange={cambiar('codigo')} placeholder="UUID o serie de marco" />
+            <input id="c-codigo" maxLength={60} value={fila.codigo} onChange={cambiar('codigo')} placeholder="Código impreso bajo el QR o N.º de marco" />
           </div>
           <div className="campo">
             <label htmlFor="c-folio">Folio de bitácora *</label>
@@ -511,7 +511,7 @@ export default function ConsolaContingencias() {
           </div>
         )}
         <p className="ayuda" style={{ marginTop: 12 }}>
-          Mostrando {nPendientes} pendientes y {pendientes.length - nPendientes} observados.
+          Mostrando {contar(nPendientes, 'pendiente')} y {contar(pendientes.length - nPendientes, 'observado')}.
         </p>
       </section>
 
@@ -523,13 +523,13 @@ export default function ConsolaContingencias() {
           alConfirmar={ejecutarConfirmacion}
           titulo={
             confirmar.tipo === 'importar'
-              ? `¿Importar y conciliar ${listas} movimientos?`
-              : confirmar.tipo === 'lote' ? `¿Conciliar los ${nPendientes} movimientos pendientes?` : '¿Seguro que desea conciliar este movimiento?'
+              ? `¿Importar y conciliar ${contar(listas, 'movimiento')}?`
+              : confirmar.tipo === 'lote' ? (nPendientes === 1 ? '¿Conciliar el movimiento pendiente?' : `¿Conciliar los ${nPendientes} movimientos pendientes?`) : '¿Seguro que desea conciliar este movimiento?'
           }
         >
           <p>
             {confirmar.tipo === 'importar'
-              ? `${listas - retirosListos} ingresos y ${retirosListos} retiros del archivo ${nombreArchivo}${previa && previa.length > listas ? `; ${previa.length - listas} filas con error no se cargarán` : ''}.${nPendientes ? ` También se conciliarán ${nPendientes} movimientos que ya estaban pendientes en el lote.` : ''} Se procesan en orden de fecha y hora y cada fila se concilia por separado; los retiros con DNI distinto quedan OBSERVADOS.`
+              ? `${contar(listas - retirosListos, 'ingreso')} y ${contar(retirosListos, 'retiro')} del archivo ${nombreArchivo}${previa && previa.length > listas ? `; ${contar(previa.length - listas, 'fila')} con error no se ${previa.length - listas === 1 ? 'cargará' : 'cargarán'}` : ''}.${nPendientes ? ` También se conciliarán ${contar(nPendientes, 'movimiento')} que ya ${nPendientes === 1 ? 'estaba pendiente' : 'estaban pendientes'} en el lote.` : ''} Se procesan en orden de fecha y hora y cada fila se concilia por separado; los retiros con DNI distinto quedan OBSERVADOS.`
               : confirmar.tipo === 'lote'
               ? 'Se procesan en orden de fecha y hora (los ingresos antes que los retiros). Cada fila se concilia por separado: si una falla, las demás no se afectan.'
               : `Folio ${confirmar.item.folio}: ${confirmar.item.tipo === 'INGRESO' ? 'la bicicleta pasará a DENTRO' : 'la bicicleta pasará a FUERA'}. Se registra en la auditoría como MANUAL.`}

@@ -54,6 +54,10 @@ describe('W7 · Gestión de Usuarios y Roles', () => {
     const botones = await screen.findAllByRole('button', { name: 'Restablecer contraseña' });
     expect(botones[2]).toBeDisabled();
     await usuario.click(botones[0]);
+    expect(restablecerPassword).not.toHaveBeenCalled(); // primero se confirma (Nielsen H5)
+    const dialogo = screen.getByRole('dialog');
+    expect(dialogo).toHaveTextContent('dejará de funcionar de inmediato');
+    await usuario.click(within(dialogo).getByRole('button', { name: 'Restablecer' }));
     expect(restablecerPassword).toHaveBeenCalledWith('u1');
     expect(await screen.findByDisplayValue('Zz9yXx8wVv7u')).toBeInTheDocument();
   });

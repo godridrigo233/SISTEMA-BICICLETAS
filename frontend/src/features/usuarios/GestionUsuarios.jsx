@@ -8,7 +8,6 @@ import {
   Filter,
   KeyRound,
   RotateCcw,
-  Shield,
   ShieldAlert,
   UserCheck,
   UserPlus,
@@ -35,6 +34,7 @@ export default function GestionUsuarios() {
   const [ocupado, setOcupado] = useState(false);
   const [temporal, setTemporal] = useState(null);
   const [inactivar, setInactivar] = useState(null);
+  const [restablecerA, setRestablecerA] = useState(null);
   const [copiado, setCopiado] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -72,9 +72,12 @@ export default function GestionUsuarios() {
     }, 'No se pudo crear la cuenta.');
   };
 
-  const restablecer = (u) => {
-    void ejecutar(async () => setTemporal(await restablecerPassword(u.idUsuario)), 'No se pudo restablecer la contraseña.');
-  };
+  // Nielsen H5: restablecer invalida de inmediato la contraseña vigente, por eso se confirma antes.
+  async function confirmarRestablecer() {
+    const u = restablecerA;
+    await ejecutar(async () => setTemporal(await restablecerPassword(u.idUsuario)), 'No se pudo restablecer la contraseña.');
+    setRestablecerA(null);
+  }
 
   const alternar = (u) => (u.activo
     ? setInactivar(u)
@@ -107,13 +110,9 @@ export default function GestionUsuarios() {
         <div>
           <h1>Gestión de Usuarios y Roles</h1>
           <p className="ayuda" style={{ marginTop: -8 }}>
-            Administración de cuentas de personal, asignación de privilegios RBAC y control de acceso
+            Cree las cuentas del personal, asigne su rol y restablezca contraseñas. Cada rol solo ve las pantallas que le corresponden.
           </p>
         </div>
-        <span className="etiqueta badge-dentro" style={{ padding: '6px 14px' }}>
-          <Shield size={16} aria-hidden="true" />
-          Seguridad RBAC
-        </span>
       </div>
 
       {mensaje && (
@@ -161,7 +160,7 @@ export default function GestionUsuarios() {
           Crear cuenta
         </button>
         <p className="ayuda ancho-completo">
-          Cuentas del personal. Los estudiantes provienen del padrón institucional (carga ETL). La contraseña temporal la genera el servidor; en la base de datos solo se guarda su hash (BCrypt).
+          Solo para el personal: las cuentas de los estudiantes provienen del padrón institucional. El sistema genera una contraseña temporal, que se muestra una sola vez y nunca se guarda en texto legible.
         </p>
       </form>
 
@@ -234,7 +233,7 @@ export default function GestionUsuarios() {
                         type="button"
                         className="boton"
                         disabled={!u.activo || ocupado}
-                        onClick={() => restablecer(u)}
+                        onClick={() => setRestablecerA(u)}
                         style={{ fontSize: '0.875rem', padding: '6px 14px' }}
                       >
                         <KeyRound size={16} aria-hidden="true" />
@@ -250,9 +249,23 @@ export default function GestionUsuarios() {
 
         <Paginador pagina={pagina} alCambiar={setNumero} />
         <p className="ayuda" style={{ marginTop: 12 }}>
-          «Restablecer contraseña» se deshabilita en cuentas inactivas. No existe eliminación física: las cuentas se inactivan (borrado lógico).
+          Para restablecer la contraseña, la cuenta debe estar activa. Las cuentas no se eliminan: se inactivan y conservan su historial.
         </p>
       </section>
+
+      {restablecerA && (
+        <Confirmacion
+          titulo="¿Restablecer la contraseña?"
+          textoConfirmar="Restablecer"
+          ocupado={ocupado}
+          alCancelar={() => setRestablecerA(null)}
+          alConfirmar={confirmarRestablecer}
+        >
+          <p>
+            {restablecerA.correo}: su contraseña actual dejará de funcionar de inmediato y se generará una temporal para entregarle en persona.
+          </p>
+        </Confirmacion>
+      )}
 
       {/* Modal de confirmación para inactivar cuenta */}
       {inactivar && (
