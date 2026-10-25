@@ -112,12 +112,8 @@ export default function PanelGarita() {
       <div className="con-boton encabezado" style={{ marginBottom: 8 }}>
         <div>
           <h1>Panel Central de Garita</h1>
-          <p className="ayuda" style={{ marginTop: -8 }}>Terminal operativo de control de acceso vehicular no motorizado</p>
+          <p className="ayuda" style={{ marginTop: -8 }}>Lea el QR de la bicicleta: si está FUERA se registra su ingreso; si está DENTRO, se verifica el rostro de quien la retira.</p>
         </div>
-        <span className="etiqueta badge-dentro" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
-          <ShieldCheck size={16} aria-hidden="true" />
-          Puesto activo
-        </span>
       </div>
 
       {/* Buscador de QR de alta visibilidad para el vigilante */}
@@ -158,7 +154,7 @@ export default function PanelGarita() {
             </button>
           </div>
           <p id="ayuda-qr" className="ayuda" style={{ marginTop: 8 }}>
-            Formato UUID (36 caracteres). Si el QR es ilegible, puede digitarse (CU-03, 2a).
+            Si el lector no logra leer el sticker, escriba el código impreso debajo del QR y pulse Enter.
           </p>
         </form>
       </section>

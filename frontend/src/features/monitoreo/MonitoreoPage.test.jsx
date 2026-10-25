@@ -24,6 +24,13 @@ describe('W6 · Monitoreo y Reportes', () => {
     expect(screen.getByText('Contingencia · Folio F-0012')).toBeInTheDocument();
   });
 
+  it('usa términos del usuario e indica la hora de la última actualización (Nielsen H1 y H2)', async () => {
+    render(<MonitoreoPage />);
+    expect(await screen.findByText('Tiempo promedio de verificación hoy')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Diferencia facial' })).toBeInTheDocument();
+    expect(screen.getByText(/^Actualizado a las \d{2}:\d{2}$/)).toBeInTheDocument();
+  });
+
   it('«Ver movimientos manuales» filtra por resultado MANUAL y exporta con los filtros aplicados', async () => {
     const usuario = userEvent.setup();
     render(<MonitoreoPage />);

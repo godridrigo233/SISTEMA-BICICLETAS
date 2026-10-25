@@ -67,6 +67,16 @@ export default function RegistroEnrolamiento() {
   const necesitaBici = perfil && perfil.bicicletas.length === 0;
   const biciValida = !necesitaBici || (bici.numeroMarco.trim() && bici.marcaModelo.trim() && bici.color);
   const puedeEnviar = biciValida && consentimiento && descriptor && !enviando;
+  // Nielsen H1 y H5: lista visible de lo que falta para completar el registro.
+  const requisitos = [
+    ...(necesitaBici ? [
+      ['Número de marco', Boolean(bici.numeroMarco.trim())],
+      ['Marca y modelo', Boolean(bici.marcaModelo.trim())],
+      ['Color', Boolean(bici.color)],
+    ] : []),
+    ['Aceptar el consentimiento', consentimiento],
+    ['Capturar su rostro', Boolean(descriptor)],
+  ];
 
   async function capturar() {
     setError('');
@@ -288,8 +298,8 @@ export default function RegistroEnrolamiento() {
                 Capturar rostro
               </button>
 
-              <p style={{ fontWeight: 600, color: descriptor ? 'var(--verde-ucsm)' : 'var(--gris-600)', marginTop: 8 }}>
-                Descriptor: {descriptor ? 'capturado (128 / 128)' : 'no capturado (0 / 128)'}
+              <p role="status" style={{ fontWeight: 600, color: descriptor ? 'var(--verde-ucsm)' : 'var(--gris-600)', marginTop: 8 }}>
+                {descriptor ? '✓ Rostro capturado correctamente. Si desea, puede volver a capturarlo.' : 'Aún no ha capturado su rostro.'}
               </p>
             </div>
           )}
@@ -311,9 +321,17 @@ export default function RegistroEnrolamiento() {
           <ShieldCheck size={20} aria-hidden="true" />
           {enviando ? 'Guardando…' : 'Completar registro'}
         </button>
-        <p className="ayuda" style={{ marginTop: -8 }}>
-          Requiere datos de la bicicleta válidos, consentimiento aceptado y descriptor capturado.
-        </p>
+        {!puedeEnviar && !enviando && (
+          <ul className="requisitos" aria-label="Pendiente para completar el registro">
+            {requisitos.map(([texto, listo]) => (
+              <li key={texto} className={listo ? 'listo' : ''}>
+                {listo ? <CheckCircle2 size={16} aria-hidden="true" /> : <span className="pendiente" aria-hidden="true" />}
+                {texto}
+                <span className="sr-only">{listo ? ' (completo)' : ' (pendiente)'}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </form>
     </main>
   );

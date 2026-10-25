@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import VerificacionRetiro from './VerificacionRetiro';
@@ -52,7 +52,7 @@ describe('W2 · Verificación facial del retiro (CU-04)', () => {
 
     await usuario.click(await screen.findByRole('button', { name: 'Capturar y verificar' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Retiro denegado: el rostro no coincide (0.68)');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Retiro denegado: el rostro no coincide con el del titular');
     expect(screen.getByRole('button', { name: 'Reintentar captura' })).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Derivar al supervisor' }));
     expect(alTerminar).toHaveBeenCalledWith(expect.objectContaining({ resultado: 'DENEGADO' }));
@@ -73,5 +73,25 @@ describe('W2 · Verificación facial del retiro (CU-04)', () => {
     navigator.mediaDevices.getUserMedia = vi.fn().mockRejectedValue(new Error('NotAllowedError'));
     montar();
     expect(await screen.findByRole('alert')).toHaveTextContent('No se detecta una cámara');
+  });
+
+  it('deja «Capturar y verificar» con el foco para capturar con Enter (Nielsen H7)', async () => {
+    montar();
+    const boton = await screen.findByRole('button', { name: 'Capturar y verificar' });
+    await waitFor(() => expect(boton).toHaveFocus());
+  });
+
+  it('tras un DENEGADO permite cancelar y explica la diferencia en lenguaje llano (Nielsen H2 y H3)', async () => {
+    vi.mocked(autorizarRetiro).mockResolvedValue({ resultado: 'DENEGADO', estadoActualizado: 'DENTRO', distanciaEuclidiana: 0.68, umbralTheta: 0.37 });
+    const usuario = userEvent.setup();
+    const alCancelar = vi.fn();
+    render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={vi.fn()} alCancelar={alCancelar} />);
+
+    await usuario.click(await screen.findByRole('button', { name: 'Capturar y verificar' }));
+
+    expect(await screen.findByText(/Diferencia con el rostro registrado/)).toHaveTextContent('0.68');
+    expect(screen.getByText('Se acepta hasta 0.37')).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(alCancelar).toHaveBeenCalledOnce();
   });
 });
