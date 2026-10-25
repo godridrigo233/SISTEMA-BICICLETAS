@@ -75,20 +75,38 @@ falsos positivos justificados y riesgos aceptados. Formato de cada línea:
 
 | ID de alerta | Nombre | Severidad | URL afectada | Corrección propuesta | Estado |
 | ------------ | ------ | --------- | ------------ | -------------------- | ------ |
-| **10038** | Content Security Policy (CSP) Header Not Set | Media | `https://sistema-bicicletas.vercel.app` | Configurar directiva CSP en `vercel.json` | Corregido (PR actual) |
-| **10020** | Anti-clickjacking Header (X-Frame-Options) | Media | `https://sistema-bicicletas.vercel.app` | Agregar `X-Frame-Options: DENY` en `vercel.json` | Corregido (PR actual) |
-| **10098** | Cross-Domain Misconfiguration | Media | `https://sistema-bicicletas.vercel.app` | Delimitar `Access-Control-Allow-Origin` al dominio de la SPA | Corregido (PR actual) |
-| **10021** | X-Content-Type-Options Header Missing | Baja | `https://sistema-bicicletas.vercel.app` | Agregar `X-Content-Type-Options: nosniff` en `vercel.json` | Corregido (PR actual) |
-| **10063** | Permissions Policy Header Not Set | Baja | `https://sistema-bicicletas.vercel.app` | Definir `Permissions-Policy` restringiendo cámara a `(self)` y resto desactivado | Corregido (PR actual) |
-| **90004-3** | Insufficient Site Isolation Against Spectre (COOP) | Baja | `https://sistema-bicicletas.vercel.app` | Agregar `Cross-Origin-Opener-Policy: same-origin` en `vercel.json` | Corregido (PR actual) |
-| **10035** | Strict-Transport-Security Header Not Set | Baja | `https://sistema-bicicletas.onrender.com` | Middleware global con `HSTS: max-age=31536000; includeSubDomains` en `Program.cs` | Corregido (PR actual) |
-| **10049** | Storable and Cacheable Content | Baja | `https://sistema-bicicletas.onrender.com` | Middleware global con `Cache-Control: no-store` en `Program.cs` | Corregido (PR actual) |
-| **10055-6** | CSP: style-src unsafe-inline (detectada en el re-escaneo, al existir ya la CSP) | Media | `https://sistema-bicicletas.vercel.app` | Retirar `'unsafe-inline'` de `style-src`: React aplica los estilos en línea mediante CSSOM, que la CSP no bloquea, y ninguna dependencia inyecta etiquetas `<style>`. Verificado con un recorrido automatizado de las 8 pantallas por rol con la CSP estricta: 0 violaciones | Corregido (PR actual) |
+| **10038** | Content Security Policy (CSP) Header Not Set | Media | `https://sistema-bicicletas.vercel.app` | Configurar directiva CSP en `vercel.json` | Corregido |
+| **10020** | Anti-clickjacking Header (X-Frame-Options) | Media | `https://sistema-bicicletas.vercel.app` | Agregar `X-Frame-Options: DENY` en `vercel.json` | Corregido |
+| **10098** | Cross-Domain Misconfiguration | Media | `https://sistema-bicicletas.vercel.app` | Delimitar `Access-Control-Allow-Origin` al dominio de la SPA | Corregido |
+| **10021** | X-Content-Type-Options Header Missing | Baja | `https://sistema-bicicletas.vercel.app` | Agregar `X-Content-Type-Options: nosniff` en `vercel.json` | Corregido |
+| **10063** | Permissions Policy Header Not Set | Baja | `https://sistema-bicicletas.vercel.app` | Definir `Permissions-Policy` restringiendo cámara a `(self)` y resto desactivado | Corregido |
+| **90004-3** | Insufficient Site Isolation Against Spectre (COOP) | Baja | `https://sistema-bicicletas.vercel.app` | Agregar `Cross-Origin-Opener-Policy: same-origin` en `vercel.json` | Corregido |
+| **10035** | Strict-Transport-Security Header Not Set | Baja | `https://sistema-bicicletas.onrender.com` | Middleware global con `HSTS: max-age=31536000; includeSubDomains` en `Program.cs` | Corregido |
+| **10049** | Storable and Cacheable Content | Baja | `https://sistema-bicicletas.onrender.com` | Middleware global con `Cache-Control: no-store` en `Program.cs` | Corregido |
+| **10055-6** | CSP: style-src unsafe-inline (detectada en el re-escaneo, al existir ya la CSP) | Media | `https://sistema-bicicletas.vercel.app` | Retirar `'unsafe-inline'` de `style-src`: React aplica los estilos en línea mediante CSSOM, que la CSP no bloquea, y ninguna dependencia inyecta etiquetas `<style>`. Verificado con un recorrido automatizado de las 8 pantallas por rol con la CSP estricta: 0 violaciones | Corregido |
 | **90004-2** | Cross-Origin-Embedder-Policy (COEP) Header Not Set | Baja | `https://sistema-bicicletas.vercel.app` | Ninguna; sin regla en `.zap/reglas.tsv` porque ZAP agrupa COEP y COOP en el plugin 90004 | Aceptado: puede bloquear recursos y la cámara; beneficio marginal |
 | **10015** | Re-examine Cache-control Directives | Informativa | `https://sistema-bicicletas.vercel.app` | Contenido estático distribuido públicamente vía CDN | Informativo: contenido estático público, sin acción |
 | **10050** | Retrieved from Cache | Informativa | `https://sistema-bicicletas.vercel.app` | Caché estándar de navegador y CDN para assets estáticos | Informativo: contenido estático público, sin acción |
 | **10049-2** | Storable but Non-Cacheable Content | Informativa | `https://sistema-bicicletas.vercel.app` | Comportamiento estándar de recursos estáticos en CDN | Informativo: contenido estático público, sin acción |
 | **10109** | Modern Web Application | Informativa | `https://sistema-bicicletas.vercel.app` | Notificación de arquitectura Single Page Application (SPA) | Informativo: contenido estático público, sin acción |
+
+## Verificación posterior (re-escaneo del 25/10/2026, 03:42 UTC)
+
+| Objetivo | Alta | Media | Baja | Informativa |
+| -------- | ---- | ----- | ---- | ----------- |
+| SPA — escaneo inicial (24/10) | 0 | 3 | 4 | 4 |
+| SPA — re-escaneo (25/10) | 0 | **0** | 1 (COEP, aceptado) | 5 |
+| API — escaneo inicial (24/10) | 0 | 0 | 1 | 1 |
+| API — re-escaneo (25/10) | 0 | 0 | **0** | 1 |
+
+Alertas informativas nuevas en el re-escaneo, ambas efecto esperado de las correcciones:
+
+| ID de alerta | Nombre | Objetivo | Interpretación | Estado |
+| ------------ | ------ | -------- | -------------- | ------ |
+| **10049-1** | Non-Storable Content | API | Efecto deseado de `Cache-Control: no-store`: ninguna respuesta de la API (con datos personales o tokens) se almacena en cachés | Informativo: comportamiento esperado |
+| **10049-3** | Storable and Cacheable Content | SPA (`/assets/*`) | Efecto deseado de la caché inmutable de recursos estáticos con huella (hash) en el nombre; no contienen datos de usuario | Informativo: comportamiento esperado |
+
+Resultado: todas las alertas de severidad media y baja quedaron corregidas, salvo COEP, aceptada con justificación.
 
 ### Convención de estados
 
