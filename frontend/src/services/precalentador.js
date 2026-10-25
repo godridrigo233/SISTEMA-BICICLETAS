@@ -12,7 +12,6 @@ export function despertarApi(urlApi = import.meta.env.VITE_API_URL) {
   const urlSalud = `${urlBase}/health`;
 
   void fetch(urlSalud, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(() => {});
-  void fetch(`${urlApi}/garita/ultimo-dia`, { method: 'GET', mode: 'no-cors', cache: 'no-store' }).catch(() => {});
 }
 
 export function iniciarPrecalentamiento(urlApi = import.meta.env.VITE_API_URL) {

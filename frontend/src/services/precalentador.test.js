@@ -21,15 +21,11 @@ describe('Servicio de precalentador de API', () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it('realiza llamadas no bloqueantes a /health y al endpoint base con mode no-cors', () => {
+  it('realiza una única llamada no bloqueante a /health con mode no-cors (sin rutas inexistentes)', () => {
     despertarApi('https://api-bicicletas.onrender.com/api/v1');
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(globalThis.fetch).toHaveBeenCalledWith(
       'https://api-bicicletas.onrender.com/health',
-      expect.objectContaining({ method: 'GET', mode: 'no-cors' }),
-    );
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://api-bicicletas.onrender.com/api/v1/garita/ultimo-dia',
       expect.objectContaining({ method: 'GET', mode: 'no-cors' }),
     );
   });
