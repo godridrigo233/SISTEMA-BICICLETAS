@@ -62,7 +62,7 @@ El archivo [`.zap/reglas.tsv`](../../.zap/reglas.tsv) permite documentar
 falsos positivos justificados y riesgos aceptados. Formato de cada línea:
 
 ```
-<ID_ALERTA>	<IGNORE|WARN|FAIL>	<Justificación>
+<ID_PLUGIN>	<IGNORE|INFO|WARN|FAIL>	<Justificación>
 ```
 
 > [!IMPORTANT]
