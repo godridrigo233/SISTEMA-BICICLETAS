@@ -7,6 +7,8 @@ import { autorizarRetiro, retiroManual } from '../../services/garitaService';
 
 vi.mock('../../services/garitaService', () => ({ autorizarRetiro: vi.fn(), retiroManual: vi.fn() }));
 vi.mock('../../biometria/extractorFacial', () => ({
+  prepararBiometria: vi.fn().mockResolvedValue({}),
+  sinAceleracionGrafica: vi.fn().mockReturnValue(false),
   obtenerFaceApi: vi.fn().mockResolvedValue({}),
   cargarModelos: vi.fn().mockResolvedValue([]),
   extraerDescriptor: vi.fn(),

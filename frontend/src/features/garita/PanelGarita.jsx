@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { consultarPorQr, registrarIngreso } from '../../services/garitaService';
 import VerificacionRetiro from './VerificacionRetiro';
+import { prepararBiometria } from '../../biometria/extractorFacial';
 import { useSesion } from '../auth/SesionContext';
 import { ROL } from '../../app/rutasPorRol';
 
@@ -43,6 +44,13 @@ export default function PanelGarita() {
   const [mensaje, setMensaje] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const [movimientos, setMovimientos] = useState([]);
+
+  // Precarga en segundo plano al abrir la garita: el primer retiro del turno no espera la descarga
+  // ni la compilación de los modelos (RNF-01).
+  useEffect(() => {
+    const espera = setTimeout(() => { void prepararBiometria().catch(() => {}); }, 1500);
+    return () => clearTimeout(espera);
+  }, []);
 
   useEffect(() => {
     if (bicicleta?.estado === 'FUERA') botonIngreso.current?.focus();

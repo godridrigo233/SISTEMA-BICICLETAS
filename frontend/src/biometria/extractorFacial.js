@@ -30,6 +30,44 @@ export function cargarModelos(faceapi) {
   return modelosCargados;
 }
 
+/**
+ * Precarga y calentamiento (RNF-01): descarga los modelos y ejecuta una vez las tres redes sobre un lienzo
+ * vacío para que la tarjeta gráfica compile sus programas antes de que llegue el titular. Así, la primera
+ * captura real ya no incluye la descarga ni la compilación. No cambia el detector, el modelo ni θ.
+ * Es idempotente: la promesa se comparte entre pantallas y se reintenta si falla.
+ */
+let preparacion = null;
+export function prepararBiometria(cargarLibreria = obtenerFaceApi) {
+  preparacion ??= (async () => {
+    const faceapi = await cargarLibreria();
+    await cargarModelos(faceapi);
+    try {
+      const lienzo = document.createElement('canvas');
+      lienzo.width = 150;
+      lienzo.height = 150;
+      await faceapi.detectAllFaces(lienzo, new faceapi.SsdMobilenetv1Options({ minConfidence: CONFIANZA_MINIMA_DETECCION }));
+      await faceapi.detectFaceLandmarks(lienzo);
+      await faceapi.computeFaceDescriptor(lienzo);
+    } catch {
+      // El calentamiento es una optimización: si falla, la captura real sigue funcionando.
+    }
+    return faceapi;
+  })().catch((error) => {
+    preparacion = null;
+    throw error;
+  });
+  return preparacion;
+}
+
+/** Devuelve true si TensorFlow.js calcula sin aceleración gráfica (backend «cpu»): la verificación será lenta. */
+export function sinAceleracionGrafica(faceapi) {
+  try {
+    return faceapi?.tf?.getBackend?.() === 'cpu';
+  } catch {
+    return false;
+  }
+}
+
 /** CU-04, flujo 3a: se exige exactamente un rostro en el encuadre. */
 export function seleccionarRostroUnico(rostros) {
   if (!rostros?.length) {
