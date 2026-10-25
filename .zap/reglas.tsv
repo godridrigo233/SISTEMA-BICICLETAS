@@ -2,4 +2,5 @@
 # ──────────────────────────────────────────────────────────────
 # Archivo de reglas para OWASP ZAP Baseline Scan.
 # Cada línea sigue el formato:  <ID_ALERTA>\t<IGNORE|WARN|FAIL>\t<Justificación>
-90004-2	IGNORE	Aceptado: puede bloquear recursos y la cámara; beneficio marginal
+# Nota: ZAP solo acepta el ID del plugin (90004), que agrupa COEP y COOP; ignorarlo ocultaría COOP.
+# Por eso COEP (alerta 90004-2) se acepta y justifica en docs/seguridad/ESCANEO_ZAP.md, sin regla aquí.
