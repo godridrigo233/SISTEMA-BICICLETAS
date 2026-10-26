@@ -879,6 +879,24 @@ fieldset legend {
   border-bottom: 2px solid var(--gris-300);
 }
 
+/* Tablas con muchas columnas (W6): caben sin desplazamiento horizontal en 1280–1366 px (HU-16) */
+.tabla-compacta th,
+.tabla-compacta td {
+  padding: 10px 10px;
+}
+
+.tabla-compacta th {
+  letter-spacing: 0.02em;
+}
+
+.nota-celda {
+  display: block;
+  margin-top: 4px;
+  color: var(--gris-600);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
 .tabla tbody tr {
   transition: background-color 0.15s ease;
 }

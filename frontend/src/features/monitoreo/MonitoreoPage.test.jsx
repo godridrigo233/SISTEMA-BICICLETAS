@@ -21,7 +21,7 @@ describe('W6 · Monitoreo y Reportes', () => {
     render(<MonitoreoPage />);
     expect(await screen.findByText('Movimientos manuales hoy')).toBeInTheDocument();
     expect(screen.getByText('1.45 s')).toBeInTheDocument();
-    expect(screen.getByText('Contingencia · Folio F-0012')).toBeInTheDocument();
+    expect(screen.getByText('Folio F-0012')).toBeInTheDocument();
   });
 
   it('usa términos del usuario e indica la hora de la última actualización (Nielsen H1 y H2)', async () => {
