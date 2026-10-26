@@ -34,6 +34,13 @@ describe('W1 · LoginPage', () => {
     expect(screen.getByText(/no la de su cuenta Microsoft institucional/)).toBeInTheDocument();
   });
 
+  it('advierte antes de intentar que 5 fallos bloquean la cuenta 15 minutos (Nielsen H5, HU-14)', () => {
+    montar();
+    const aviso = screen.getByText('Por seguridad, tras 5 intentos fallidos la cuenta se bloquea durante 15 minutos.');
+    expect(aviso).toBeInTheDocument();
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(/5 intentos fallidos/);
+  });
+
   it('mantiene deshabilitado «Ingresar» hasta tener un correo @ucsm.edu.pe y una contraseña', async () => {
     const usuario = userEvent.setup();
     montar();

@@ -33,12 +33,12 @@ Criterio de aceptación: ningún hallazgo de severidad ≥ 2 abierto.
 | HU-11 | W6 Monitoreo | «Latencia», «Distancia»; tiempos en ms en la tabla y en s en el indicador | H2 / H4 | 2 | «Tiempo promedio de verificación», «Diferencia facial», «Tiempo» en segundos | Corregido |
 | HU-12 | W3 Contingencias | Concordancia: «1 filas», «1 listas», «1 movimientos» | H4 Consistencia | 1 | Singular y plural correctos | Corregido |
 | HU-13 | W3 y W7 | Jerga técnica en ayudas: UTF-8, UUID, carga ETL, hash BCrypt, borrado lógico, RBAC | H2 Lenguaje del usuario | 1 | Textos en lenguaje del usuario | Corregido |
-| HU-14 | W1 Login | No advierte que 5 intentos fallidos bloquean la cuenta 15 minutos | H5 Prevención de errores | 1 | — | Pendiente (recomendación) |
+| HU-14 | W1 Login | No advierte que 5 intentos fallidos bloquean la cuenta 15 minutos | H5 Prevención de errores | 1 | Aviso permanente bajo la contraseña: «Por seguridad, tras 5 intentos fallidos la cuenta se bloquea durante 15 minutos» (asociado al campo con aria-describedby) | Corregido |
 | HU-15 | W2 Garita | El estado aparece dos veces (insignia y «Estado actual») | H8 Diseño minimalista | 1 | — | Aceptado: refuerzo intencional en el dato más crítico |
-| HU-16 | W6 Monitoreo | En 1366 px la tabla de eventos requiere desplazamiento horizontal para ver las últimas columnas | H8 | 1 | — | Pendiente (recomendación) |
+| HU-16 | W6 Monitoreo | En 1366 px la tabla de eventos requiere desplazamiento horizontal para ver las últimas columnas | H8 | 1 | Tabla compacta: menor relleno de celdas, folio debajo del tipo de registro, código sin estilo monoespaciado y correo divisible antes de «@». Medido con Playwright: ancho requerido 1205 → 1056 px en 1366 × 768 y 970 px en 1280 × 720, sin desplazamiento horizontal | Corregido |
 | HU-17 | General | La ayuda contextual es breve; no hay una guía por rol dentro del sistema | H10 Ayuda y documentación | 1 | Se atiende con el manual de usuario por rol (P11) | Pendiente |
 
-**Resultado:** 13 hallazgos corregidos (1 de severidad 3, 10 de severidad 2 y 2 de severidad 1); quedan 4 de severidad 1, sin hallazgos ≥ 2 abiertos.
+**Resultado:** 15 hallazgos corregidos (1 de severidad 3, 10 de severidad 2 y 4 de severidad 1); quedan 2 de severidad 1 (HU-15 aceptado por diseño y HU-17, que se atiende con el manual de usuario de la P11), sin hallazgos ≥ 2 abiertos. HU-14 y HU-16 se corrigieron en un segundo incremento (26/10/2026).
 
 ## Cumplimiento por heurística (después de las correcciones)
 
@@ -48,10 +48,10 @@ Criterio de aceptación: ningún hallazgo de severidad ≥ 2 abierto.
 | H2 Relación con el mundo real | Términos de la garita (sticker, DENTRO / FUERA, folio, bitácora); fechas en hora de Lima; sin jerga técnica en la operación |
 | H3 Control y libertad | «Cancelar» en ingreso, retiro (incluido el denegado), importación del CSV y diálogos; «Reintentar captura» |
 | H4 Consistencia y estándares | Mismo patrón de etiquetas de estado y botones en todas las pantallas; login con el estilo institucional UCSM; plurales correctos |
-| H5 Prevención de errores | Confirmación antes de importar, conciliar, inactivar y restablecer; DNI de 8 dígitos; botones deshabilitados con explicación; sin fechas futuras ni mayores a 72 h |
+| H5 Prevención de errores | Aviso previo del bloqueo por 5 intentos fallidos; confirmación antes de importar, conciliar, inactivar y restablecer; DNI de 8 dígitos; botones deshabilitados con explicación; sin fechas futuras ni mayores a 72 h |
 | H6 Reconocer antes que recordar | Autocompletado de la bicicleta en el CSV y en el registro manual; DNI del titular mostrado parcialmente al revisar; motivos frecuentes con un clic |
 | H7 Flexibilidad y eficiencia | Lector 2D con Enter; foco automático en «Registrar ingreso» y en «Capturar y verificar»; validación automática del CSV; «Importar y conciliar» en un paso |
-| H8 Estética y diseño minimalista | Garita a pantalla completa sin menú para el Garitero; encabezados compactos en móvil |
+| H8 Estética y diseño minimalista | Garita a pantalla completa sin menú para el Garitero; encabezados compactos en móvil; tabla de eventos de W6 sin desplazamiento horizontal en 1280–1366 px |
 | H9 Reconocer, diagnosticar y recuperarse de errores | Mensajes específicos y accionables («El DNI debe tener 8 dígitos», «Hay más de un rostro en el encuadre…», «Sin conexión: use la plantilla de contingencia») |
 | H10 Ayuda y documentación | Ayudas breves junto a cada campo; plantilla descargable; manual técnico y manual de usuario (P11) |
 

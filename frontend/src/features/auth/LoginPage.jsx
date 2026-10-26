@@ -139,7 +139,7 @@ export default function LoginPage() {
                     maxLength={128}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    aria-describedby="nota-password"
+                    aria-describedby="nota-password nota-bloqueo"
                     style={{ paddingLeft: 38 }}
                   />
                   <Lock
@@ -160,6 +160,7 @@ export default function LoginPage() {
                 </button>
               </div>
               <p id="nota-password" className="ayuda">Use la contraseña de este sistema, no la de su cuenta Microsoft institucional.</p>
+              <p id="nota-bloqueo" className="ayuda">Por seguridad, tras 5 intentos fallidos la cuenta se bloquea durante 15 minutos.</p>
             </div>
 
             {error && <p className="alerta" role="alert">{error}</p>}

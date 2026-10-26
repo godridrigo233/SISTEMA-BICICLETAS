@@ -23,6 +23,13 @@ import { consultarEventos, exportarCsv, obtenerAlertasBiometricas, obtenerResume
 const VACIO = { tipo: '', resultado: '', registro: '', desde: '', hasta: '' };
 const REGISTRO = { AUTOMATICO: 'Automático', CONTINGENCIA: 'Contingencia', DERIVACION: 'Derivación' };
 
+/** Permite cortar el correo antes de la «@» para que la tabla quepa en 1280–1366 px (Nielsen H8, HU-16). */
+function correoDivisible(correo) {
+  if (!correo?.includes('@')) return correo;
+  const [usuario, dominio] = correo.split('@');
+  return <>{usuario}<wbr />@{dominio}</>;
+}
+
 function iconoKpi(titulo) {
   const props = { size: 20, 'aria-hidden': 'true', style: { flexShrink: 0 } };
   switch (titulo) {
@@ -273,7 +280,7 @@ export default function MonitoreoPage() {
 
       {pagina && pagina.total > 0 && (
         <div className="tabla-desplazable">
-          <table className="tabla">
+          <table className="tabla tabla-compacta">
             <thead>
               <tr>
                 <th>Fecha y hora</th>
@@ -303,8 +310,9 @@ export default function MonitoreoPage() {
                   </td>
                   <td>
                     <span className="etiqueta" style={{ background: 'var(--gris-100)', borderColor: 'var(--gris-200)' }}>
-                      {REGISTRO[e.registro]}{e.folio ? ` · Folio ${e.folio}` : ''}
+                      {REGISTRO[e.registro]}
                     </span>
+                    {e.folio && <small className="nota-celda">Folio {e.folio}</small>}
                   </td>
                   <td>
                     {e.distanciaEuclidiana == null ? '—' : (
@@ -321,8 +329,8 @@ export default function MonitoreoPage() {
                     )}
                   </td>
                   <td>{e.bicicleta}</td>
-                  <td><span className="codigo" style={{ fontSize: '0.85rem', padding: '1px 6px', borderRadius: 4 }}>{e.codigoUniversitario}</span></td>
-                  <td><small style={{ color: 'var(--gris-600)' }}>{e.operador}</small></td>
+                  <td style={{ fontVariantNumeric: 'tabular-nums' }}>{e.codigoUniversitario}</td>
+                  <td><small style={{ color: 'var(--gris-600)' }}>{correoDivisible(e.operador)}</small></td>
                 </tr>
               ))}
             </tbody>

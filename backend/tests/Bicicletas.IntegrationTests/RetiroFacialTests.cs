@@ -128,6 +128,53 @@ public sealed class RetiroFacialTests(FabricaApi fabrica) : IClassFixture<Fabric
         Assert.Equal(0, exito.RechazosConsecutivos);
     }
 
+    /// <summary>
+    /// Aislamiento (ACID): varias garitas intentan retirar la misma bicicleta al mismo tiempo con el
+    /// rostro del titular. El bloqueo de fila (SELECT … FOR UPDATE) serializa las transacciones: solo una
+    /// autoriza la salida y las demás encuentran la bicicleta FUERA (409), sin auditar una segunda salida.
+    /// </summary>
+    [FactConBaseDatos]
+    public async Task Retiro_SolicitudesSimultaneasMismaBicicleta_SoloUnaAutorizaYSeAuditaUnaSalida()
+    {
+        const int garitas = 5;
+        var bici = await DatosGarita.CrearBicicletaAsync(fabrica, "DENTRO");
+        await DatosGarita.EnrolarAsync(fabrica, bici.IdEstudiante, Vector());
+
+        // Las sesiones se abren antes para que las solicitudes de retiro salgan a la vez.
+        var sesiones = new List<(HttpClient Cliente, string Token)>();
+        try
+        {
+            for (int i = 0; i < garitas; i++)
+                sesiones.Add(await SesionGaritaAsync());
+
+            var largada = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            List<Task<(HttpStatusCode Estado, string Cuerpo)>> tareas = sesiones.Select(async sesion =>
+            {
+                await largada.Task;
+                using var solicitud = AutenticacionTests.Solicitud(Ruta.ToString(), sesion.Token,
+                    new { idBicicleta = bici.IdBicicleta, descriptorCapturado = Vector(0.01), latenciaMs = 900 });
+                using HttpResponseMessage respuesta = await sesion.Cliente.SendAsync(solicitud);
+                return (Estado: respuesta.StatusCode, Cuerpo: await respuesta.Content.ReadAsStringAsync());
+            }).ToList();
+            largada.SetResult();
+            (HttpStatusCode Estado, string Cuerpo)[] respuestas = await Task.WhenAll(tareas);
+
+            string detalle = string.Join(" | ", respuestas.Select(r => $"{(int)r.Estado}: {r.Cuerpo}"));
+            Assert.True(respuestas.Count(r => r.Estado == HttpStatusCode.OK) == 1, detalle);
+            Assert.True(respuestas.Count(r => r.Estado == HttpStatusCode.Conflict) == garitas - 1, detalle);
+            Assert.Contains("AUTORIZADO", respuestas.Single(r => r.Estado == HttpStatusCode.OK).Cuerpo, StringComparison.Ordinal);
+
+            Assert.Equal("FUERA", await ConsultarAsync<string>($"SELECT estado AS \"Value\" FROM bicicletas WHERE id_bicicleta = {bici.IdBicicleta}"));
+            Assert.Equal(1, await ConsultarAsync<int>($"SELECT count(*)::int AS \"Value\" FROM auditoria_accesos WHERE id_bicicleta = {bici.IdBicicleta} AND tipo_evento = 'RETIRO'"));
+            Assert.Equal(1, await ConsultarAsync<int>($"SELECT count(*)::int AS \"Value\" FROM auditoria_accesos WHERE id_bicicleta = {bici.IdBicicleta} AND tipo_evento = 'RETIRO' AND resultado = 'EXITOSO'"));
+        }
+        finally
+        {
+            foreach (var sesion in sesiones)
+                sesion.Cliente.Dispose();
+        }
+    }
+
     internal sealed record Alerta(string CodigoUniversitario, string Estudiante, int RechazosConsecutivos, DateTime UltimoIntentoUtc);
 
     internal sealed record RespuestaRetiro(string Resultado, string EstadoActualizado, double DistanciaEuclidiana, double UmbralTheta,
