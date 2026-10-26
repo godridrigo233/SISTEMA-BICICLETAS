@@ -289,7 +289,7 @@ Implementado en el módulo `frontend/src/biometria/extractorFacial.js` a través
   <link rel="preconnect" href="https://sistema-bicicletas.onrender.com" crossorigin />
   ```
   Esto inicia de forma temprana la resolución DNS, el intercambio TCP y la negociación de certificados TLS con el servidor de la API antes de que se dispare la primera petición del usuario.
-* **Mantenimiento en Caliente:** El servicio `frontend/src/services/precalentador.js` gestiona un latido periódico hacia el endpoint `/health` de la API para mantener el entorno de ejecución activo en los periodos de operación de la garita.
+* **Mantenimiento en Caliente:** El servicio `frontend/src/services/precalentador.js` gestiona un latido periódico (cada 9 minutos) hacia el endpoint `/health` de la API para mantener el entorno de ejecución activo. El latido solo se envía con la pestaña visible y dentro del horario de operación de la garita (06:00–22:00, hora de Lima), de modo que fuera de ese horario el contenedor puede dormir y no se agotan las 750 horas gratuitas mensuales de Render; al abrir la página, la API se despierta de inmediato.
 
 ---
 
