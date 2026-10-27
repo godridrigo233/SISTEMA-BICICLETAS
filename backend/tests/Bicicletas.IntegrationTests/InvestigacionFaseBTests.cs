@@ -50,7 +50,7 @@ public sealed class InvestigacionFaseBTests(FabricaApi fabrica) : IClassFixture<
         Assert.Equal(capturado[7], fila.Vector[7], 10);
         Assert.InRange(fila.Distancia, 1.1, 1.2);
         Assert.True(fila.Latencia >= 700);
-        Assert.Equal("face-api.js-0.22.2-ssd", fila.Version);
+        Assert.Equal("vlad-1.7.15-ssd", fila.Version);
         Assert.Equal("DENEGADO", fila.Resultado);
     }
 

@@ -12,7 +12,7 @@ El sistema implementa una arquitectura desacoplada basada en la nube y cómputo 
 flowchart TD
     subgraph Cliente["Cliente / Navegador Web (Edge Computing)"]
         SPA["SPA (React 18 + Vite)\nAlojada en Vercel"]
-        FaceAPI["face-api.js 0.22.2\nDetector: SSD MobileNetV1\nExtracción de vector (128 FLOAT8)"]
+        FaceAPI["@vladmandic/face-api 1.7.15\nDetector: SSD MobileNetV1\nExtracción de vector (128 FLOAT8)"]
         SPA --> FaceAPI
     end
 
@@ -39,7 +39,7 @@ flowchart TD
 
 ### 1.2. Biometría y Cómputo en el Extremo (*Edge Computing*)
 El sistema aplica el principio de minimización de datos exigido por la **Ley N.º 29733 (Ley de Protección de Datos Personales de la República del Perú)**:
-* **Cómputo en el navegador:** La detección de rostros y la extracción del descriptor biométrico se ejecutan localmente en el navegador del operador o del usuario mediante la librería `face-api.js` (versión 0.22.2) y el modelo de detección `SSD MobileNetV1` (confianza mínima > 0.90).
+* **Cómputo en el navegador:** La detección de rostros y la extracción del descriptor biométrico se ejecutan localmente en el navegador del operador o del usuario mediante la librería `@vladmandic/face-api` (versión 1.7.15, sobre TensorFlow.js 4.22) y el modelo de detección `SSD MobileNetV1` (confianza mínima > 0.90). Es la misma librería con la que se extrajeron los descriptores del Dataset Primario Local UCSM (Fase A); sus pesos son idénticos byte a byte a los de face-api.js 0.22.2, usada hasta el 27/10/2026 (ver `docs/calidad/MIGRACION_LIBRERIA_FACIAL.md`).
 * **Descriptor de 128 dimensiones:** La captura biométrica genera únicamente un vector numérico de 128 valores de coma flotante (`FLOAT8[128]`).
 * **Decisión en el servidor:** El navegador transmite exclusivamente el vector numérico hacia la API mediante HTTPS. El servidor calcula la distancia euclidiana frente al descriptor de referencia previamente enrolado y valida si cumple con el umbral calibrado $\theta = 0.37$.
 * **No almacenamiento de imágenes:** Bajo ningún concepto se transmiten, procesan ni almacenan fotografías, fotogramas o imágenes de los rostros en el servidor ni en la base de datos. Los vectores transitorios de verificación se descartan de memoria tras la comparación; la única excepción es el modo de investigación de la Fase B (sección 3.1, `V006`), que conserva descriptores seudonimizados de participantes con consentimiento hasta concluir el estudio.
@@ -117,7 +117,7 @@ Por razones estrictas de seguridad, **nunca se versionan valores reales, contras
 * `Cors__OrigenPermitido`: Lista de orígenes web autorizados para interactuar con la API mediante CORS, separados por comas.
 * `Biometria__UmbralTheta`: Valor numérico del umbral de decisión euclidiana $\theta$ (por defecto: `0.37`).
   > [!WARNING]
-  > No debe modificarse: el valor 0.37 fue calibrado con el Dataset Primario Local UCSM (Fase A) para el detector SSD MobileNetV1 y el modelo face-api.js 0.22.2. Alterar el umbral, el detector o el modelo invalida la calibración.
+  > No debe modificarse: el valor 0.37 fue calibrado con el Dataset Primario Local UCSM (Fase A) con la librería @vladmandic/face-api 1.7.15, el detector SSD MobileNetV1 y los modelos de `frontend/public/models`. Alterar el umbral, la librería, el detector o los modelos invalida la calibración.
 * `Investigacion__FaseBHabilitada`: Booleano (`true`/`false`) que habilita el registro de telemetría experimental para la Fase B de investigación.
 
 #### Entornos de Automatización y Pruebas (CI / E2E / Carga)
@@ -280,7 +280,7 @@ Esto elimina solicitudes redundantes de red en visitas consecutivas del navegado
 
 ### 6.2. Precarga y Calentamiento Biométrico
 Implementado en el módulo `frontend/src/biometria/extractorFacial.js` a través de la función `prepararBiometria`:
-* **Carga desacoplada:** Los modelos de `face-api.js` (`ssdMobilenetv1`, `faceLandmark68Net`, `faceRecognitionNet`) se cargan de forma asíncrona en memoria antes de la apertura del flujo de captura.
+* **Carga desacoplada:** Los modelos de `@vladmandic/face-api` (`ssdMobilenetv1`, `faceLandmark68Net`, `faceRecognitionNet`) se cargan de forma asíncrona en memoria antes de la apertura del flujo de captura.
 * **Calentamiento de GPU:** Se ejecuta una inferencia en blanco sobre un elemento `<canvas>` sintético en memoria. Esto fuerza a la tarjeta gráfica o acelerador de hardware a compilar los programas (*shaders*) de WebGL/TensorFlow.js con anticipación. Cuando el usuario se presenta frente a la cámara, el sistema ejecuta la inferencia directamente sin penalización por compilación inicial.
 
 ### 6.3. Preconexión y Mantenimiento de la API

@@ -8,7 +8,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('face-api.js')) {
+            if (id.includes('@vladmandic/face-api')) {
               return 'vendor-faceapi';
             }
             if (id.includes('qrcode')) {
@@ -27,7 +27,9 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
+    // La librería facial incluye TensorFlow.js (≈1.3 MB; 340 kB comprimida): se carga de forma diferida
+    // solo en la garita y el enrolamiento, y el navegador la guarda en caché (Cache-Control immutable).
+    chunkSizeWarningLimit: 1400,
   },
   test: {
     environment: 'jsdom',

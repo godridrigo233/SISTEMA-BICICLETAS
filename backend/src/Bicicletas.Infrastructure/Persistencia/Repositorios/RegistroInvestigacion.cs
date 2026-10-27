@@ -10,7 +10,7 @@ namespace Bicicletas.Infrastructure.Persistencia.Repositorios;
 /// </summary>
 internal sealed class RegistroInvestigacion(AppDbContext db, IConfiguration configuracion) : IRegistroInvestigacion
 {
-    public const string VersionModelo = "face-api.js-0.22.2-ssd";
+    public const string VersionModelo = "vlad-1.7.15-ssd";
 
     public bool Habilitado { get; } =
         bool.TryParse(configuracion["Investigacion:FaseBHabilitada"], out bool habilitado) && habilitado;

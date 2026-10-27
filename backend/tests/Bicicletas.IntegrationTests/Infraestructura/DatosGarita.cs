@@ -40,7 +40,7 @@ public static class DatosGarita
         AppDbContext db = ambito.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO descriptores_biometricos (id_estudiante, vector_embedding, version_modelo)
-            VALUES ({idEstudiante}, {vector}, 'face-api-0.22.2');
+            VALUES ({idEstudiante}, {vector}, 'vlad-1.7.15-ssd');
             """);
     }
 

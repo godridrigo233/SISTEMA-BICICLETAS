@@ -1,8 +1,11 @@
-# Pesos de face-api.js 0.22.2
+# Pesos de los modelos faciales
 
-Copiados sin modificar del repositorio oficial `justadudewhohacks/face-api.js` (carpeta `weights/`,
-licencia MIT). Se sirven desde el propio dominio de la SPA para no depender de un CDN externo
-(OWASP A08: integridad del software). Si cambia un archivo, hay que recalibrar el umbral θ.
+Los usa la librería `@vladmandic/face-api` 1.7.15 (TensorFlow.js 4.22), la misma con la que se extrajeron
+los descriptores del Dataset Primario Local UCSM (Fase A) y se calibró θ = 0.37. Los archivos provienen del
+repositorio oficial `justadudewhohacks/face-api.js` (carpeta `weights/`, licencia MIT) y son **idénticos byte a
+byte** a los que distribuye `@vladmandic/face-api` (verificado con SHA-256 el 27/10/2026; ver
+`docs/calidad/MIGRACION_LIBRERIA_FACIAL.md`). Se sirven desde el propio dominio de la SPA para no depender de un
+CDN externo (OWASP A08: integridad del software). Si cambia un archivo, hay que recalibrar el umbral θ.
 
 | Modelo | Uso |
 |---|---|
