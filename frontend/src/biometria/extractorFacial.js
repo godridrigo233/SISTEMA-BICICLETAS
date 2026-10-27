@@ -3,8 +3,10 @@
 // API compara con el de referencia y descarta (Ley N.º 29733).
 export const DIMENSIONES_DESCRIPTOR = 128;
 const RUTA_MODELOS = '/models';
-// Mismo detector con el que se conformó el Dataset Primario Local UCSM y se calibró θ = 0.37
-// (SSD MobileNetV1, confianza > 0.90). Cambiar el detector exige recalibrar el umbral.
+// Misma librería (@vladmandic/face-api 1.7.15, TensorFlow.js 4.22) y mismo detector (SSD MobileNetV1,
+// confianza > 0.90) con los que se conformó el Dataset Primario Local UCSM y se calibró θ = 0.37.
+// Cambiar la librería, el detector o los modelos exige recalibrar el umbral.
+export const VERSION_MODELO = 'vlad-1.7.15-ssd';
 export const CONFIANZA_MINIMA_DETECCION = 0.9;
 
 export class ErrorBiometrico extends Error {
@@ -14,8 +16,8 @@ export class ErrorBiometrico extends Error {
   }
 }
 
-/** Carga diferida de face-api.js: la librería solo se descarga al abrir el flujo de retiro. */
-export const obtenerFaceApi = () => import('face-api.js');
+/** Carga diferida de la librería facial: solo se descarga al abrir el flujo de retiro o de enrolamiento. */
+export const obtenerFaceApi = () => import('@vladmandic/face-api');
 
 let modelosCargados = null;
 export function cargarModelos(faceapi) {

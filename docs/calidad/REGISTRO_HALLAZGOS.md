@@ -19,7 +19,7 @@ El análisis lo ejecuta el pipeline de GitHub Actions en cada push (análisis au
 
 | ID | Proyecto | Archivo : línea | Tipo / Severidad | Hallazgo | Corrección aplicada | Estado |
 |---|---|---|---|---|---|---|
-| H-01 | web | `package-lock.json` | Vulnerabilidad / Alta (npm audit) | node-fetch ≤ 2.6.6 (vía face-api.js) | `overrides` a node-fetch 2.7.0 | Corregido |
+| H-01 | web | `package-lock.json` | Vulnerabilidad / Alta (npm audit) | node-fetch ≤ 2.6.6 (vía face-api.js) | `overrides` a node-fetch 2.7.0; la dependencia se retiró el 27/10/2026 al migrar a @vladmandic/face-api | Corregido |
 | H-02 | web | `package.json` | Vulnerabilidad / Moderada (npm audit) | react-router-dom con redirección abierta | Actualización de versión | Corregido |
 | H-03 | api | `AutenticacionService.cs:18` | Seguridad / Blocker (secreto en código) | Hash BCrypt literal en el código fuente | El hash ficticio (anti enumeración por tiempo) se genera en memoria al primer uso con un valor aleatorio | Corregido |
 | H-04 | api | `.github/workflows/ci.yml:213` | Seguridad / High (cadena de suministro) | Acción de terceros referida por etiqueta | `sonarqube-scan-action` fijada por SHA de commit (v8.3.0) | Corregido |

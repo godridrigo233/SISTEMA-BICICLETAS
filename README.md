@@ -13,7 +13,7 @@ Asesor: Dr. Néstor Torres Gamarra.
 | Capa (P05)                    | Carpeta                                   | Tecnología                         | Despliegue            |
 |-------------------------------|-------------------------------------------|------------------------------------|-----------------------|
 | Presentación (SPA)            | `frontend/src/features`, `frontend/src/app` | React 18 + Vite                  | Vercel                |
-| Componente biométrico (Edge)  | `frontend/src/biometria`, `frontend/public/models` | face-api.js 0.22.2 + WebGL | Navegador de la garita |
+| Componente biométrico (Edge)  | `frontend/src/biometria`, `frontend/public/models` | @vladmandic/face-api 1.7.15 (TensorFlow.js 4.22, WebGL) | Navegador de la garita |
 | Lógica de negocio (API REST)  | `backend/src/Bicicletas.Api`, `backend/src/Bicicletas.Application`, `backend/src/Bicicletas.Domain` | ASP.NET Core 10 (LTS) | Render (Docker) |
 | Acceso a datos                | `backend/src/Bicicletas.Infrastructure`   | Entity Framework Core 10 + Npgsql  | Render (Docker)       |
 | Persistencia                  | `database/migrations`                     | PostgreSQL 17                      | Supabase (Session Pooler, TLS) |
@@ -31,7 +31,7 @@ sistema-bicicletas/
 │   │   └── backup-supabase.yml       # Respaldo diario pg_dump cifrado (AES-256)
 │   └── pull_request_template.md
 ├── frontend/                         # Capa de Presentación + Componente biométrico Edge
-│   ├── public/models/                # Pesos de face-api.js servidos desde el propio dominio
+│   ├── public/models/                # Pesos de los modelos faciales servidos desde el propio dominio
 │   ├── src/
 │   │   ├── app/                      # Enrutador, ProtectedRoute (RBAC), proveedores
 │   │   ├── features/                 # Una carpeta por pantalla (W1–W7)

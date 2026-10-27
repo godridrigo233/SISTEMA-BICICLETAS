@@ -1,11 +1,12 @@
 import { api } from './apiClient';
+import { VERSION_MODELO } from '../biometria/extractorFacial';
 
 export const obtenerPerfil = async () => (await api.get('/estudiante/perfil')).data;
 
 export const registrarBicicleta = async (datos) => (await api.post('/estudiante/bicicletas', datos)).data;
 
 export async function enrolar(descriptor) {
-  await api.put('/estudiante/enrolamiento', { descriptor, consentimientoAceptado: true, versionModelo: 'face-api-0.22.2' });
+  await api.put('/estudiante/enrolamiento', { descriptor, consentimientoAceptado: true, versionModelo: VERSION_MODELO });
 }
 
 /** W5: el servidor filtra por el estudiante del token; aquí solo se envían filtros y página. */

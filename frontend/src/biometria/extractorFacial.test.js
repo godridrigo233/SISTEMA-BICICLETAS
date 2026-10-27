@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CONFIANZA_MINIMA_DETECCION, DIMENSIONES_DESCRIPTOR, ErrorBiometrico, extraerDescriptor, seleccionarRostroUnico } from './extractorFacial';
+import { CONFIANZA_MINIMA_DETECCION, DIMENSIONES_DESCRIPTOR, ErrorBiometrico, VERSION_MODELO, extraerDescriptor, seleccionarRostroUnico } from './extractorFacial';
 
 const rostro = (n = DIMENSIONES_DESCRIPTOR) => ({ descriptor: new Float32Array(n).fill(0.1) });
 
@@ -25,6 +25,11 @@ describe('Extracción del descriptor (rostro único, CU-04 3a)', () => {
 });
 
 describe('Detector facial alineado con la calibración de θ = 0.37', () => {
+  it('identifica la librería y el detector de la Fase A (@vladmandic/face-api 1.7.15 con SSD MobileNetV1)', () => {
+    expect(VERSION_MODELO).toBe('vlad-1.7.15-ssd');
+    expect(VERSION_MODELO.length).toBeLessThanOrEqual(20);   // columna version_modelo VARCHAR(20)
+  });
+
   it('usa SSD MobileNetV1 con confianza mínima de 0.90', async () => {
     const opciones = [];
     const cadena = { withFaceLandmarks: () => cadena, withFaceDescriptors: async () => [{ descriptor: new Float32Array(128) }] };

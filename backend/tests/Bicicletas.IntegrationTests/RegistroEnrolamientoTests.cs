@@ -34,12 +34,12 @@ public sealed class RegistroEnrolamientoTests(FabricaApi fabrica) : IClassFixtur
 
         double[] vector = Enumerable.Range(0, 128).Select(i => i / 1000.0).ToArray();
         using var sinConsentimiento = AutenticacionTests.Solicitud("/api/v1/estudiante/enrolamiento", token,
-            new { descriptor = vector, consentimientoAceptado = false, versionModelo = "face-api-0.22.2" }, HttpMethod.Put);
+            new { descriptor = vector, consentimientoAceptado = false, versionModelo = "vlad-1.7.15-ssd" }, HttpMethod.Put);
         using HttpResponseMessage r422 = await cliente.SendAsync(sinConsentimiento);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, r422.StatusCode);
 
         using var enrolar = AutenticacionTests.Solicitud("/api/v1/estudiante/enrolamiento", token,
-            new { descriptor = vector, consentimientoAceptado = true, versionModelo = "face-api-0.22.2" }, HttpMethod.Put);
+            new { descriptor = vector, consentimientoAceptado = true, versionModelo = "vlad-1.7.15-ssd" }, HttpMethod.Put);
         using HttpResponseMessage r204 = await cliente.SendAsync(enrolar);
         Assert.Equal(HttpStatusCode.NoContent, r204.StatusCode);
 
