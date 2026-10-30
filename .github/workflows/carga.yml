@@ -27,7 +27,7 @@ concurrency:
 jobs:
   carga:
     name: Prueba de Carga RNF-01 (10 VUs - 2m)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Descargar código fuente
         uses: actions/checkout@v5
@@ -48,7 +48,7 @@ jobs:
 
       - name: Publicar resumen de prueba de carga
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: resumen-prueba-carga-rnf01
           path: tests/carga/resultados/
