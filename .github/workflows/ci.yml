@@ -32,7 +32,7 @@ jobs:
   # ---------------------------------------------------------------------------
   database:
     name: Base de datos (migraciones + pruebas SQL)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:17
@@ -70,7 +70,7 @@ jobs:
   # ---------------------------------------------------------------------------
   backend:
     name: API ASP.NET Core 10 (xUnit + SonarCloud)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_ORG: ${{ vars.SONAR_ORGANIZATION || 'godridrigo233' }}
@@ -177,7 +177,7 @@ jobs:
   # ---------------------------------------------------------------------------
   frontend:
     name: SPA React (Vitest + SonarCloud)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     defaults:
@@ -227,7 +227,7 @@ jobs:
     name: Despliegue a staging (Render + Vercel)
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: [database, backend, frontend]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: staging
     steps:
       - name: Disparar despliegue de la API en Render
