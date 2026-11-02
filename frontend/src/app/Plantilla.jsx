@@ -255,7 +255,8 @@ export default function Plantilla() {
               {colapsada ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronLeft size={18} aria-hidden="true" />}
             </button>
 
-            <h2 className="barra-titulo-pantalla">{tituloPantalla}</h2>
+            {/* Rótulo visual de la barra: el título semántico de la pantalla es su <h1> (un solo encabezado por pantalla). */}
+            <p className="barra-titulo-pantalla" aria-hidden="true">{tituloPantalla}</p>
           </div>
 
           <div className="barra-derecha">
