@@ -163,4 +163,19 @@ describe('W3 · Consola de Regularización', () => {
     await usuario.click(screen.getByRole('button', { name: 'Guardar resolución' }));
     expect(servicio.revisar).toHaveBeenCalledWith('c2', { resolucion: 'CONFIRMADO_TITULAR', motivo: 'Titular confirmó el retiro por teléfono', dniCorregido: null });
   });
+
+  it('si la revisión resulta en CONFLICTO (hora anterior al último movimiento), lo informa sin decir que queda OBSERVADO (D-19)', async () => {
+    vi.mocked(servicio.obtenerDetalle).mockResolvedValue({ folio: 'B-0009', dniAnotado: '45127809', dniTitularParcial: '4512 ****', titular: 'ALUMNO DOS', correoTitular: 'a2@estudiante.ucsm.edu.pe', bicicleta: 'GW / Azul', numeroMarco: 'M-2', horaManualUtc: '2026-10-17T16:00:00Z', vigilante: null });
+    vi.mocked(servicio.revisar).mockResolvedValue({ folio: 'B-0009', tipo: 'RETIRO', resultado: 'CONFLICTO' });
+    const usuario = userEvent.setup();
+    render(<ConsolaContingencias />);
+    await usuario.click(await screen.findByRole('button', { name: 'Revisar' }));
+    await screen.findByText('4512 ****');
+    await usuario.click(screen.getByLabelText(/Error de digitación/));
+    await usuario.type(screen.getByLabelText('DNI corregido'), '45127808');
+    await usuario.type(screen.getByLabelText(/Motivo u observación/), 'Transcripción errada del folio');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar resolución' }));
+    expect(await screen.findByText(/Folio B-0009 no conciliado: el movimiento no es compatible/)).toBeInTheDocument();
+    expect(screen.queryByText(/permanece OBSERVADO/)).not.toBeInTheDocument();
+  });
 });

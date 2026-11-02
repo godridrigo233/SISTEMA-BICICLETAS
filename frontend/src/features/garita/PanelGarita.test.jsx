@@ -52,6 +52,24 @@ describe('W2 · Panel de Garita — ingreso por QR (CU-03)', () => {
     expect(screen.getByLabelText('Código QR de la bicicleta')).toHaveValue('');
   });
 
+  it('la latencia del ingreso mide la respuesta a la lectura del QR y no el tiempo de cotejo del vigilante (D-18)', async () => {
+    let ahora = 1000;
+    const reloj = vi.spyOn(performance, 'now').mockImplementation(() => ahora);
+    vi.mocked(consultarPorQr).mockImplementation(async () => { ahora = 1180; return bici('FUERA'); }); // la consulta tarda 180 ms
+    vi.mocked(registrarIngreso).mockResolvedValue({ resultado: 'EXITOSO', estadoActualizado: 'DENTRO' });
+    const usuario = userEvent.setup();
+    render(<PanelGarita />);
+
+    await escanear(usuario);
+    await screen.findByRole('button', { name: 'Registrar ingreso' });
+    ahora = 9180; // el vigilante coteja la bicicleta durante 8 s antes de confirmar
+    await usuario.keyboard('{Enter}');
+
+    await screen.findByRole('status');
+    expect(registrarIngreso).toHaveBeenCalledWith('b0000000-0000-4000-8000-000000000001', 180);
+    reloj.mockRestore();
+  });
+
   it('con la bicicleta DENTRO no ofrece ingreso y abre la verificación facial', async () => {
     vi.mocked(consultarPorQr).mockResolvedValue(bici('DENTRO'));
     const usuario = userEvent.setup();

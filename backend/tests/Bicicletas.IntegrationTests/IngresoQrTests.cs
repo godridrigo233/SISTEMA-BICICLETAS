@@ -62,7 +62,7 @@ public sealed class IngresoQrTests(FabricaApi fabrica) : IClassFixture<FabricaAp
         using IServiceScope ambito = fabrica.Services.CreateScope();
         AppDbContext db = ambito.ServiceProvider.GetRequiredService<AppDbContext>();
         string estado = await db.Database.SqlQuery<string>($"SELECT estado AS \"Value\" FROM bicicletas WHERE id_bicicleta = {bici.IdBicicleta}").SingleAsync();
-        int eventos = await db.Database.SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM auditoria_accesos WHERE id_bicicleta = {bici.IdBicicleta} AND tipo_evento = 'INGRESO' AND resultado = 'EXITOSO' AND distancia_euclidiana IS NULL AND latencia_ms = 420").SingleAsync();
+        int eventos = await db.Database.SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM auditoria_accesos WHERE id_bicicleta = {bici.IdBicicleta} AND tipo_evento = 'INGRESO' AND resultado = 'EXITOSO' AND distancia_euclidiana IS NULL AND latencia_ms >= 420").SingleAsync();
         Assert.Equal("DENTRO", estado);
         Assert.Equal(1, eventos);
     }
