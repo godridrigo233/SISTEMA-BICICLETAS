@@ -27,7 +27,7 @@ concurrency:
 jobs:
   e2e:
     name: Suite E2E Staging (Chromium)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: e2e
@@ -66,7 +66,7 @@ jobs:
 
       - name: Publicar reporte HTML de Playwright
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: reporte-playwright
           path: e2e/playwright-report

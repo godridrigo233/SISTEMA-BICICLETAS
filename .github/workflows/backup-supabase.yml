@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   backup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Instalar cliente de PostgreSQL 17
         run: |
@@ -50,7 +50,7 @@ jobs:
           ls -lh "respaldo_ucsm_${FECHA}.sql.gz.gpg"
 
       - name: Guardar respaldo cifrado como artefacto
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: db-backup-${{ env.FECHA }}
           path: respaldo_ucsm_${{ env.FECHA }}.sql.gz.gpg
