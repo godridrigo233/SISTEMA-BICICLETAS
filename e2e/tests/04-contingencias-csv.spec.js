@@ -83,7 +83,7 @@ test.describe('04 · Consola de Regularización - Importación y Conciliación C
     await expect(page.getByRole('heading', { name: /vista previa/i })).toBeVisible({ timeout: 20000 });
 
     // Apertura del modal de confirmación «Importar y conciliar»
-    const botonImportar = page.getByRole('button', { name: /importar y conciliar \d+ filas/i });
+    const botonImportar = page.getByRole('button', { name: /importar y conciliar \d+ filas?/i });
     await expect(botonImportar).toBeEnabled({ timeout: 15000 });
     await botonImportar.click();
 
