@@ -191,7 +191,7 @@ export default function ConsolaContingencias() {
             ? `Folio ${r.folio} conciliado.`
             : r.resultado === 'OBSERVADO'
               ? `Caso OBSERVADO: el DNI anotado en el folio ${r.folio} no corresponde al titular. Resuélvalo con «Revisar».`
-              : `No se pudo conciliar el folio ${r.folio}: el estado de la bicicleta no permite el movimiento. Verifique el folio.`,
+              : `No se pudo conciliar el folio ${r.folio}: el movimiento no es compatible con el estado o con el último movimiento registrado de la bicicleta. El motivo se muestra en el lote; verifique el folio.`,
         );
       }
       await cargarPendientes();
@@ -545,7 +545,11 @@ export default function ConsolaContingencias() {
             setRevisando(null);
             avisar(
               r.resultado === 'CONCILIADO' ? 'exito' : 'aviso',
-              r.resultado === 'CONCILIADO' ? `Folio ${r.folio} conciliado.` : `Folio ${r.folio} permanece OBSERVADO y se deriva a Seguridad.`,
+              r.resultado === 'CONCILIADO'
+                ? `Folio ${r.folio} conciliado.`
+                : r.resultado === 'CONFLICTO'
+                  ? `Folio ${r.folio} no conciliado: el movimiento no es compatible con el estado o con el último movimiento registrado de la bicicleta. El motivo se muestra en el lote.`
+                  : `Folio ${r.folio} permanece OBSERVADO y se deriva a Seguridad.`,
             );
             await cargarPendientes();
           }}

@@ -38,7 +38,8 @@ export default function PanelGarita() {
   const sesion = useSesion()?.sesion;
   const campoQr = useRef(null);
   const botonIngreso = useRef(null);
-  const inicio = useRef(0);
+  // RNF-01 (D-18): respuesta del sistema a la lectura del QR; excluye el cotejo visual del vigilante.
+  const latenciaConsulta = useRef(null);
   const [codigo, setCodigo] = useState('');
   const [bicicleta, setBicicleta] = useState(null);
   const [mensaje, setMensaje] = useState(null);
@@ -66,11 +67,13 @@ export default function PanelGarita() {
   async function consultar(evento) {
     evento.preventDefault();
     if (!codigo.trim() || ocupado) return;
-    inicio.current = performance.now(); // latencia del ingreso: desde la lectura del QR (RNF-01)
+    const inicio = performance.now();
     setOcupado(true);
     setMensaje(null);
     try {
-      setBicicleta(await consultarPorQr(codigo));
+      const encontrada = await consultarPorQr(codigo);
+      latenciaConsulta.current = Math.round(performance.now() - inicio);
+      setBicicleta(encontrada);
     } catch (e) {
       setBicicleta(null);
       setMensaje(mensajeGarita(e));
@@ -93,7 +96,7 @@ export default function PanelGarita() {
     if (ocupado) return;
     setOcupado(true);
     try {
-      await registrarIngreso(bicicleta.idBicicleta, Math.round(performance.now() - inicio.current));
+      await registrarIngreso(bicicleta.idBicicleta, latenciaConsulta.current);
       setMovimientos((m) => [
         { hora: hora(), titular: bicicleta.titular, bici: `${bicicleta.marcaModelo} / ${bicicleta.color}`, tipo: 'INGRESO', resultado: 'EXITOSO' },
         ...m,

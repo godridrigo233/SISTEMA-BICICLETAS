@@ -8,6 +8,7 @@
 | `V004__seguridad_rls.sql` | RLS habilitado sin políticas para anon/authenticated | P05 (OWASP A01) |
 | `V005__catalogo_roles.sql` | Catálogo RBAC de 4 roles | P06 |
 | `V006__investigacion_fase_b.sql` | `investigacion_capturas`: descriptores de la Fase B (solo con el modo de investigación activo; se vacía al concluir el estudio) | Tesis, Fase B |
+| `V007__d19_conciliacion_cronologica.sql` | `conciliar_contingencia`: CONFLICTO si la hora anotada es anterior al último movimiento auditado; el estado se valida antes que el DNI | D-19 (prueba de sistema ST-07) |
 
 V001–V005 constituyen la línea base del esquema vigente en Supabase al 17/10/2026 (verificada contra
 el respaldo de esa fecha). A partir de aquí, todo cambio es una migración nueva `V006__...`;
