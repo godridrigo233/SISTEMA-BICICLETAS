@@ -17,11 +17,17 @@ jobs:
     steps:
       - name: Instalar cliente de PostgreSQL 17
         run: |
+          # Reintentos ante cortes transitorios de red (fallo del 03/11/2026: curl 56 al descargar la llave).
           sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          sudo curl -fsSL --retry 5 --retry-delay 10 --retry-all-errors --connect-timeout 20 \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-17
+          for intento in 1 2 3; do
+            sudo apt-get -o Acquire::Retries=5 update && \
+            sudo apt-get -o Acquire::Retries=5 install -y postgresql-client-17 && break
+            echo "::warning::Instalación del cliente fallida (intento $intento de 3); se reintenta en 30 s"
+            sleep 30
+          done
           /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Generar marca de tiempo (hora de Lima)
