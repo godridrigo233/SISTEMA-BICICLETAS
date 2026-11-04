@@ -14,7 +14,10 @@ vi.mock('../../biometria/extractorFacial', () => ({
   extraerDescriptor: vi.fn(),
   abrirCamara: vi.fn(() => navigator.mediaDevices.getUserMedia()),
   // La captura automática no logra la calidad en las pruebas de componente: se ejercita el respaldo manual.
-  capturarAutomaticamente: vi.fn(() => Promise.reject(Object.assign(new Error('Pida al estudiante que mire de frente a la cámara.'), { codigo: 'TIEMPO_AGOTADO' }))),
+  capturarAutomaticamente: vi.fn((_video, _faceapi, { alDemorar } = {}) => {
+    alDemorar?.('Pida al estudiante que mire de frente a la cámara.');
+    return new Promise(() => {});
+  }),
   capturarParaEnrolamiento: vi.fn(),
 }));
 
@@ -147,12 +150,10 @@ describe('W2 · Captura automática del retiro', () => {
     expect(screen.queryByRole('button', { name: 'Capturar y verificar' })).not.toBeInTheDocument();
   });
 
-  it('si se agota el tiempo, explica el problema y ofrece la captura manual o reanudar', async () => {
-    const usuario = userEvent.setup();
+  it('si tarda, sigue intentando y ofrece además la captura manual', async () => {
     montar();
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se logró una captura con buena calidad');
+    expect(await screen.findByText(/La captura automática sigue intentando/)).toHaveTextContent('Pida al estudiante que mire de frente a la cámara.');
     expect(screen.getByRole('button', { name: 'Capturar y verificar' })).toBeEnabled();
-    await usuario.click(screen.getByRole('button', { name: 'Reanudar captura automática' }));
-    await waitFor(() => expect(capturarAutomaticamente).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(/Captura automática:/)).toBeInTheDocument();
   });
 });

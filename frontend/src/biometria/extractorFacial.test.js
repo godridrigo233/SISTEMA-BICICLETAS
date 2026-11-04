@@ -150,16 +150,47 @@ describe('Captura automática con control de calidad', () => {
   const reloj = () => { let t = 0; return { ahora: () => t, esperar: async (ms) => { t += ms; } }; };
   const comun = { brillo: () => 130 };
 
-  it('captura solo tras 5 análisis aptos seguidos y reinicia la cuenta si el rostro se gira', async () => {
-    const secuencia = [[apto()], [apto()], [girado()], [apto()], [apto()], [apto()], [apto()], [apto()]];
+  it('captura cuando 4 de los últimos 6 análisis son aptos, tolerando un análisis aislado fuera de rango', async () => {
+    const secuencia = [[apto()], [apto()], [girado()], [apto()], [apto()], [apto()]];
     const { faceapi, opciones } = crearFaceApi(secuencia);
     const estados = [];
     const r = await capturarAutomaticamente(video, faceapi, { ...comun, ...reloj(), alCambiar: (e) => estados.push(e) });
     expect(r.descriptor).toHaveLength(128);
     expect(typeof r.inicioCaptura).toBe('number');
-    expect(estados.map((e) => e.estables)).toEqual([1, 2, 0, 1, 2, 3, 4, 5]);
+    expect(estados.map((e) => e.estables)).toEqual([1, 2, 0, 3, 4]);
     expect(estados[2].mensaje).toBe('Pida al estudiante que mire de frente a la cámara.');
     expect(opciones[0]).toEqual({ minConfidence: 0.9 });
+  });
+
+  it('no captura si el rostro solo está bien en análisis sueltos', async () => {
+    const secuencia = [[apto()], [girado()], [apto()], [girado()], [apto()], [girado()], [apto()], [girado()]];
+    const { faceapi } = crearFaceApi(secuencia);
+    await expect(capturarAutomaticamente(video, faceapi, { ...comun, ...reloj(), tiempoMaximoMs: 1500 }))
+      .rejects.toMatchObject({ codigo: 'TIEMPO_AGOTADO', message: 'Pida al estudiante que mire de frente a la cámara.' });
+  });
+
+  it('no analiza el video hasta que está listo (la librería se quedaría esperando)', async () => {
+    const { faceapi, analisis } = crearFaceApi([[apto()]]);
+    const camara = { readyState: 0, videoWidth: 0, videoHeight: 0 };
+    const { ahora, esperar } = reloj();
+    const estados = [];
+    let vueltas = 0;
+    const promesa = capturarAutomaticamente(camara, faceapi, {
+      ...comun, ahora, alCambiar: (e) => estados.push(e),
+      esperar: async (ms) => { vueltas += 1; if (vueltas === 3) Object.assign(camara, { readyState: 4, videoWidth: 640, videoHeight: 480 }); await esperar(ms); },
+    });
+    await expect(promesa).resolves.toMatchObject({ descriptor: expect.any(Array) });
+    expect(estados.slice(0, 3).every((e) => e.mensaje === 'Iniciando la cámara…')).toBe(true);
+    expect(analisis()).toBe(5); // 4 análisis con el video listo + la captura final
+  });
+
+  it('avisa una sola vez si tarda y sigue intentando hasta capturar', async () => {
+    const secuencia = [...Array(60).fill([girado()]), [apto()], [apto()], [apto()], [apto()]];
+    const { faceapi } = crearFaceApi(secuencia);
+    const avisos = [];
+    const r = await capturarAutomaticamente(video, faceapi, { ...comun, ...reloj(), alDemorar: (m) => avisos.push(m) });
+    expect(r.descriptor).toHaveLength(128);
+    expect(avisos).toEqual(['Pida al estudiante que mire de frente a la cámara.']);
   });
 
   it('agota el tiempo con el último problema detectado y no envía nada', async () => {
