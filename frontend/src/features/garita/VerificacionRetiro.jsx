@@ -11,13 +11,16 @@ import {
   UserCheck,
   XCircle,
 } from 'lucide-react';
-import { extraerDescriptor, prepararBiometria, sinAceleracionGrafica } from '../../biometria/extractorFacial';
+import { abrirCamara, capturarAutomaticamente, extraerDescriptor, prepararBiometria, sinAceleracionGrafica } from '../../biometria/extractorFacial';
 import { autorizarRetiro, retiroManual } from '../../services/garitaService';
 import { mensajeDeError } from '../../services/apiClient';
 
 /**
  * CU-04 en W2: captura del rostro, extracción del descriptor en el navegador y decisión en la API.
  * El video solo se muestra en vivo: ningún fotograma se guarda ni se envía (Ley N.º 29733).
+ * La captura es automática: el sistema analiza el video y captura cuando el rostro cumple el control de calidad
+ * durante un segundo; mientras tanto, indica al vigilante qué corregir. Si no lo logra en 10 s, ofrece la
+ * captura manual.
  */
 export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, permiteManual = false }) {
   const video = useRef(null);
@@ -32,6 +35,8 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
   const [dni, setDni] = useState('');
   const [manual, setManual] = useState(false);
   const [lento, setLento] = useState(false);
+  const [estado, setEstado] = useState(null);
+  const busqueda = useRef(null);
 
   useEffect(() => {
     let activo = true;
@@ -39,10 +44,10 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
       try {
         faceapi.current = await prepararBiometria();
         if (activo) setLento(sinAceleracionGrafica(faceapi.current));
-        flujo.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        flujo.current = await abrirCamara();
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
-        setFase('lista');
+        setFase('buscando');
       } catch {
         if (activo) {
           setFase('sin-camara');
@@ -53,9 +58,33 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     void preparar();
     return () => {
       activo = false;
+      busqueda.current?.abort();
       flujo.current?.getTracks().forEach((pista) => pista.stop());
     };
   }, []);
+
+  // Captura automática con control de calidad (pose, distancia, centrado e iluminación).
+  useEffect(() => {
+    if (fase !== 'buscando') return undefined;
+    const control = new AbortController();
+    busqueda.current = control;
+    setMensaje('');
+    setEstado(null);
+    capturarAutomaticamente(video.current, faceapi.current, { destinatario: 'vigilante', senal: control.signal, alCambiar: setEstado })
+      .then(({ descriptor, inicioCaptura }) => {
+        if (!control.signal.aborted) void verificar(descriptor, inicioCaptura);
+      })
+      .catch((error) => {
+        if (control.signal.aborted || error?.codigo === 'CANCELADO') return;
+        setFase('lista');
+        setMensaje(
+          error?.codigo === 'TIEMPO_AGOTADO'
+            ? `No se logró una captura con buena calidad. ${error.message} Luego capture manualmente o reanude la captura automática.`
+            : error?.message ?? 'No se pudo analizar el video de la cámara.',
+        );
+      });
+    return () => control.abort();
+  }, [fase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Nielsen H7: la verificación queda a la vista y «Capturar y verificar» recibe el foco, de modo que
   // el vigilante no necesita desplazarse ni usar el ratón (Enter captura).
@@ -66,13 +95,11 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     if (fase === 'lista') botonCapturar.current?.focus();
   }, [fase]);
 
-  async function capturar() {
+  // RNF-01: el reloj inicia con el cálculo del descriptor (no con la espera previa); la API suma su decisión.
+  async function verificar(descriptor, inicioCaptura) {
     setFase('verificando');
     setMensaje('');
-    // RNF-01: el reloj inicia con la captura facial; la API suma el tiempo de su decisión.
-    const inicioCaptura = performance.now();
     try {
-      const descriptor = await extraerDescriptor(video.current, faceapi.current);
       const respuesta = await autorizarRetiro(bicicleta.idBicicleta, descriptor, Math.round(performance.now() - inicioCaptura));
       descriptor.fill(0); // se descarta también en el navegador
       setResultado(respuesta);
@@ -83,15 +110,33 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
         setDerivable(true);
       }
     } catch (error) {
-      setFase('lista');
-      if (error?.response?.status === 409) setDerivable(true); // p. ej., titular sin enrolamiento
-      // Los mensajes de captura se dirigen al vigilante, que es quien ve la pantalla en la garita.
-      const indicaciones = {
-        NO_ROSTRO: 'No se detectó el rostro con claridad. Pida al estudiante que mire de frente a la cámara y oriente la cámara hacia su rostro, con buena iluminación.',
-        VARIOS_ROSTROS: 'Hay más de un rostro en el encuadre. Pida que solo el titular quede frente a la cámara.',
-      };
-      setMensaje(indicaciones[error?.codigo] ?? error?.response?.data?.detail ?? error?.message ?? 'No se pudo verificar el rostro.');
+      mostrarError(error);
     }
+  }
+
+  /** Captura manual: respaldo cuando la captura automática no logra la calidad en el tiempo previsto. */
+  async function capturar() {
+    busqueda.current?.abort();
+    setFase('verificando');
+    setMensaje('');
+    const inicioCaptura = performance.now();
+    try {
+      const descriptor = await extraerDescriptor(video.current, faceapi.current);
+      await verificar(descriptor, inicioCaptura);
+    } catch (error) {
+      mostrarError(error);
+    }
+  }
+
+  function mostrarError(error) {
+    setFase('lista');
+    if (error?.response?.status === 409) setDerivable(true); // p. ej., titular sin enrolamiento
+    // Los mensajes de captura se dirigen al vigilante, que es quien ve la pantalla en la garita.
+    const indicaciones = {
+      NO_ROSTRO: 'No se detectó el rostro con claridad. Pida al estudiante que mire de frente a la cámara y oriente la cámara hacia su rostro, con buena iluminación.',
+      VARIOS_ROSTROS: 'Hay más de un rostro en el encuadre. Pida que solo el titular quede frente a la cámara.',
+    };
+    setMensaje(indicaciones[error?.codigo] ?? error?.response?.data?.detail ?? error?.message ?? 'No se pudo verificar el rostro.');
   }
 
   async function autorizarManual(evento) {
@@ -200,7 +245,7 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
             <button
               type="button"
               className="boton boton-primario"
-              onClick={() => { setResultado(null); setFase('lista'); }}
+              onClick={() => { setResultado(null); setFase('buscando'); }}
             >
               <RefreshCw size={18} aria-hidden="true" />
               Reintentar captura
@@ -216,8 +261,29 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
             </button>
           </div>
         </>
+      ) : fase === 'buscando' ? (
+        <>
+          {/* Nielsen H1: estado de la captura automática y qué corregir, en lenguaje del vigilante. */}
+          <div className={estado?.apta ? 'exito' : 'aviso'} role="status" aria-live="polite" style={{ marginTop: 12 }}>
+            {estado?.apta ? (
+              <CheckCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
+            ) : (
+              <ScanFace size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
+            )}
+            <span>
+              <strong>Captura automática:</strong> {estado?.mensaje ?? 'Buscando el rostro del estudiante…'}
+              {estado?.apta && ` (${Math.min(estado.estables, estado.cuadrosEstables)}/${estado.cuadrosEstables})`}
+            </span>
+          </div>
+          <div className="con-boton" style={{ marginTop: 12 }}>
+            <button type="button" className="boton" onClick={alCancelar}>
+              Cancelar
+            </button>
+          </div>
+        </>
       ) : (
         <div className="con-boton" style={{ marginTop: 12 }}>
+          {(fase === 'lista' || fase === 'verificando') && (
           <button
             ref={botonCapturar}
             type="button"
@@ -229,6 +295,13 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
             <Camera size={20} aria-hidden="true" />
             {fase === 'verificando' ? 'Verificando…' : 'Capturar y verificar'}
           </button>
+          )}
+          {fase === 'lista' && (
+            <button type="button" className="boton" onClick={() => setFase('buscando')}>
+              <RefreshCw size={18} aria-hidden="true" />
+              Reanudar captura automática
+            </button>
+          )}
           <button type="button" className="boton" onClick={alCancelar}>
             Cancelar
           </button>

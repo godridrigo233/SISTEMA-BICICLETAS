@@ -12,6 +12,10 @@ vi.mock('../../biometria/extractorFacial', () => ({
   obtenerFaceApi: vi.fn().mockResolvedValue({}),
   cargarModelos: vi.fn().mockResolvedValue([]),
   extraerDescriptor: vi.fn(),
+  abrirCamara: vi.fn(() => navigator.mediaDevices.getUserMedia()),
+  // La captura automática no logra la calidad en las pruebas de componente: se ejercita el respaldo manual.
+  capturarAutomaticamente: vi.fn(() => Promise.reject(Object.assign(new Error('Pida al estudiante que mire de frente a la cámara.'), { codigo: 'TIEMPO_AGOTADO' }))),
+  capturarParaEnrolamiento: vi.fn(),
 }));
 
 const bicicleta = { idBicicleta: 'b-1', titular: 'ALUMNO UNO', marcaModelo: 'Marca', color: 'Rojo' };

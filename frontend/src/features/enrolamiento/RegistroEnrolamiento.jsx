@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   User,
 } from 'lucide-react';
-import { extraerDescriptor, prepararBiometria } from '../../biometria/extractorFacial';
+import { abrirCamara, capturarParaEnrolamiento, prepararBiometria } from '../../biometria/extractorFacial';
 import { mensajeDeError } from '../../services/apiClient';
 import { enrolar, obtenerPerfil, registrarBicicleta } from '../../services/estudianteService';
 import { descargarSticker, nombreAbreviado, qrComoDataUrl } from './sticker';
@@ -35,6 +35,9 @@ export default function RegistroEnrolamiento() {
   const [enviando, setEnviando] = useState(false);
   const [registrada, setRegistrada] = useState(null);
   const [qr, setQr] = useState('');
+  const [capturando, setCapturando] = useState(false);
+  const [estadoCaptura, setEstadoCaptura] = useState(null);
+  const busqueda = useRef(null);
 
   useEffect(() => {
     obtenerPerfil().then(setPerfil).catch((e) => setError(mensajeDeError(e, 'No se pudo cargar su perfil.')));
@@ -50,7 +53,7 @@ export default function RegistroEnrolamiento() {
       try {
         setCamara('cargando');
         faceapi.current = await prepararBiometria();
-        flujo.current = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+        flujo.current = await abrirCamara();
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
         setCamara('activa');
@@ -60,6 +63,7 @@ export default function RegistroEnrolamiento() {
     })();
     return () => {
       activo = false;
+      busqueda.current?.abort();
       flujo.current?.getTracks().forEach((p) => p.stop());
     };
   }, [consentimiento, registrada]);
@@ -78,13 +82,22 @@ export default function RegistroEnrolamiento() {
     ['Capturar su rostro', Boolean(descriptor)],
   ];
 
+  // La referencia se toma con captura automática y control de calidad más exigente: dos capturas que deben
+  // coincidir entre sí; se conserva una sola (igual que en la calibración de θ = 0.37).
   async function capturar() {
     setError('');
+    setDescriptor(null);
+    setCapturando(true);
+    setEstadoCaptura(null);
+    const control = new AbortController();
+    busqueda.current = control;
     try {
-      setDescriptor(await extraerDescriptor(video.current, faceapi.current));
+      setDescriptor(await capturarParaEnrolamiento(video.current, faceapi.current, { senal: control.signal, alCambiar: setEstadoCaptura }));
     } catch (e) {
-      setDescriptor(null);
-      setError(e.message);
+      if (e?.codigo !== 'CANCELADO') setError(e?.codigo === 'TIEMPO_AGOTADO' ? `No se logró una captura con buena calidad. ${e.message} Luego intente nuevamente.` : e.message);
+    } finally {
+      setCapturando(false);
+      setEstadoCaptura(null);
     }
   }
 
@@ -291,15 +304,19 @@ export default function RegistroEnrolamiento() {
                 type="button"
                 className="boton"
                 onClick={capturar}
-                disabled={camara !== 'activa'}
+                disabled={camara !== 'activa' || capturando}
                 style={{ marginTop: 8 }}
               >
                 <Camera size={18} aria-hidden="true" />
-                Capturar rostro
+                {capturando ? 'Capturando…' : 'Capturar rostro'}
               </button>
 
-              <p role="status" style={{ fontWeight: 600, color: descriptor ? 'var(--verde-ucsm)' : 'var(--gris-600)', marginTop: 8 }}>
-                {descriptor ? '✓ Rostro capturado correctamente. Si desea, puede volver a capturarlo.' : 'Aún no ha capturado su rostro.'}
+              <p role="status" aria-live="polite" style={{ fontWeight: 600, color: descriptor ? 'var(--verde-ucsm)' : 'var(--gris-600)', marginTop: 8 }}>
+                {capturando
+                  ? `Captura ${estadoCaptura?.captura ?? 1} de 2: ${estadoCaptura?.mensaje ?? 'Ubique su rostro frente a la cámara.'}`
+                  : descriptor
+                    ? '✓ Rostro capturado correctamente. Si desea, puede volver a capturarlo.'
+                    : 'Aún no ha capturado su rostro. Al pulsar «Capturar rostro», mire de frente a la cámara y quédese quieto: la captura es automática.'}
               </p>
             </div>
           )}
