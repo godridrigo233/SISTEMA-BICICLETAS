@@ -69,6 +69,23 @@ describe('W2 · Verificación facial del retiro (CU-04)', () => {
     expect(autorizarRetiro).not.toHaveBeenCalled();
   });
 
+  it('indica al vigilante que oriente la cámara hacia el estudiante, que no ve la pantalla (observación P07)', async () => {
+    montar();
+    expect(await screen.findByText(/Oriente la cámara hacia el rostro del estudiante/)).toBeInTheDocument();
+    expect(screen.getByText(/El estudiante no ve la pantalla: solo debe mirar a la cámara/)).toBeInTheDocument();
+  });
+
+  it('si no se detecta el rostro, el mensaje se dirige al vigilante', async () => {
+    vi.mocked(extraerDescriptor).mockRejectedValue(Object.assign(new Error('No se detectó el rostro con claridad.'), { codigo: 'NO_ROSTRO' }));
+    const usuario = userEvent.setup();
+    montar();
+
+    await usuario.click(await screen.findByRole('button', { name: 'Capturar y verificar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Pida al estudiante que mire de frente a la cámara');
+    expect(autorizarRetiro).not.toHaveBeenCalled();
+  });
+
   it('avisa si no hay cámara disponible', async () => {
     navigator.mediaDevices.getUserMedia = vi.fn().mockRejectedValue(new Error('NotAllowedError'));
     montar();

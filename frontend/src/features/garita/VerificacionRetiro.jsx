@@ -85,7 +85,12 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     } catch (error) {
       setFase('lista');
       if (error?.response?.status === 409) setDerivable(true); // p. ej., titular sin enrolamiento
-      setMensaje(error?.response?.data?.detail ?? error?.message ?? 'No se pudo verificar el rostro.');
+      // Los mensajes de captura se dirigen al vigilante, que es quien ve la pantalla en la garita.
+      const indicaciones = {
+        NO_ROSTRO: 'No se detectó el rostro con claridad. Pida al estudiante que mire de frente a la cámara y oriente la cámara hacia su rostro, con buena iluminación.',
+        VARIOS_ROSTROS: 'Hay más de un rostro en el encuadre. Pida que solo el titular quede frente a la cámara.',
+      };
+      setMensaje(indicaciones[error?.codigo] ?? error?.response?.data?.detail ?? error?.message ?? 'No se pudo verificar el rostro.');
     }
   }
 
@@ -127,8 +132,16 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
           <video ref={video} autoPlay muted playsInline aria-label="Video en vivo de la cámara" />
           <div className="camara-guia-ovalo" aria-hidden="true" />
         </div>
-        <p className="ayuda" style={{ textAlign: 'center', marginTop: 8 }}>
-          Un único rostro, centrado y con buena iluminación. No se guarda ninguna imagen.
+        {/* Observación del asesor (P07): quien mira la pantalla es el vigilante; el estudiante solo mira la cámara. */}
+        <p className="aviso" style={{ marginTop: 8 }}>
+          <Camera size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+          <span>
+            <strong>Oriente la cámara hacia el rostro del estudiante</strong> y pídale que mire de frente a la cámara, sin gorra
+            ni lentes oscuros, a unos 50–80 cm. El estudiante no ve la pantalla: solo debe mirar a la cámara.
+          </span>
+        </p>
+        <p className="ayuda" style={{ textAlign: 'center', marginTop: 4 }}>
+          Un único rostro dentro del óvalo, con buena iluminación. No se guarda ninguna imagen.
         </p>
       </div>
 
