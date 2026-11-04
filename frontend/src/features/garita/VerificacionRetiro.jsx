@@ -14,6 +14,7 @@ import {
 import { abrirCamara, capturarAutomaticamente, extraerDescriptor, prepararBiometria, sinAceleracionGrafica } from '../../biometria/extractorFacial';
 import { autorizarRetiro, retiroManual } from '../../services/garitaService';
 import { mensajeDeError } from '../../services/apiClient';
+import { crearAjusteExposicion, mantenerPantallaEncendida } from '../../biometria/camara';
 
 /**
  * CU-04 en W2: captura del rostro, extracción del descriptor en el navegador y decisión en la API.
@@ -40,9 +41,11 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
   // Modo de diagnóstico para el ensayo previo a la Fase B: ?diagnostico muestra las métricas de calidad.
   const [diagnostico] = useState(() => new URLSearchParams(window.location.search).has('diagnostico'));
   const busqueda = useRef(null);
+  const ajusteExposicion = useRef(null);
 
   useEffect(() => {
     let activo = true;
+    let liberarPantalla = () => {};
     async function preparar() {
       try {
         faceapi.current = await prepararBiometria();
@@ -50,6 +53,10 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
         flujo.current = await abrirCamara();
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
+        // Iluminación: la cámara aclara la imagen si el rostro está oscuro y la pantalla no se atenúa.
+        ajusteExposicion.current = crearAjusteExposicion(flujo.current.getVideoTracks?.()[0]);
+        liberarPantalla = await mantenerPantallaEncendida();
+        if (!activo) liberarPantalla();
         setFase('buscando');
       } catch {
         if (activo) {
@@ -62,6 +69,7 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     return () => {
       activo = false;
       busqueda.current?.abort();
+      liberarPantalla();
       flujo.current?.getTracks().forEach((pista) => pista.stop());
     };
   }, []);
@@ -77,7 +85,10 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     capturarAutomaticamente(video.current, faceapi.current, {
       destinatario: 'vigilante',
       senal: control.signal,
-      alCambiar: setEstado,
+      alCambiar: (e) => {
+        setEstado(e);
+        ajusteExposicion.current?.(e.metricas?.brillo);
+      },
       alDemorar: setDemora,
     })
       .then(({ descriptor, inicioCaptura }) => {

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { abrirCamara, capturarParaEnrolamiento, prepararBiometria } from '../../biometria/extractorFacial';
 import { mensajeDeError } from '../../services/apiClient';
+import { crearAjusteExposicion, mantenerPantallaEncendida } from '../../biometria/camara';
 import { enrolar, obtenerPerfil, registrarBicicleta } from '../../services/estudianteService';
 import { descargarSticker, nombreAbreviado, qrComoDataUrl } from './sticker';
 
@@ -38,6 +39,7 @@ export default function RegistroEnrolamiento() {
   const [capturando, setCapturando] = useState(false);
   const [estadoCaptura, setEstadoCaptura] = useState(null);
   const busqueda = useRef(null);
+  const ajusteExposicion = useRef(null);
 
   useEffect(() => {
     obtenerPerfil().then(setPerfil).catch((e) => setError(mensajeDeError(e, 'No se pudo cargar su perfil.')));
@@ -49,6 +51,7 @@ export default function RegistroEnrolamiento() {
   useEffect(() => {
     if (!consentimiento || registrada) return undefined;
     let activo = true;
+    let liberarPantalla = () => {};
     void (async () => {
       try {
         setCamara('cargando');
@@ -56,6 +59,9 @@ export default function RegistroEnrolamiento() {
         flujo.current = await abrirCamara();
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
+        ajusteExposicion.current = crearAjusteExposicion(flujo.current.getVideoTracks?.()[0]);
+        liberarPantalla = await mantenerPantallaEncendida();
+        if (!activo) liberarPantalla();
         setCamara('activa');
       } catch {
         if (activo) setCamara('sin-camara');
@@ -64,6 +70,7 @@ export default function RegistroEnrolamiento() {
     return () => {
       activo = false;
       busqueda.current?.abort();
+      liberarPantalla();
       flujo.current?.getTracks().forEach((p) => p.stop());
     };
   }, [consentimiento, registrada]);
@@ -92,7 +99,13 @@ export default function RegistroEnrolamiento() {
     const control = new AbortController();
     busqueda.current = control;
     try {
-      setDescriptor(await capturarParaEnrolamiento(video.current, faceapi.current, { senal: control.signal, alCambiar: setEstadoCaptura }));
+      setDescriptor(await capturarParaEnrolamiento(video.current, faceapi.current, {
+        senal: control.signal,
+        alCambiar: (e) => {
+          setEstadoCaptura(e);
+          ajusteExposicion.current?.(e.metricas?.brillo);
+        },
+      }));
     } catch (e) {
       if (e?.codigo !== 'CANCELADO') setError(e?.codigo === 'TIEMPO_AGOTADO' ? `No se logró una captura con buena calidad. ${e.message} Luego intente nuevamente.` : e.message);
     } finally {
@@ -276,7 +289,9 @@ export default function RegistroEnrolamiento() {
           </div>
 
           {consentimiento && (
-            <div className="camara" style={{ marginTop: 16 }}>
+            // «Luz de pantalla»: durante la captura, la pantalla se pone en blanco alrededor del video para
+            // iluminar el rostro de quien la mira (la web no puede subir el brillo del dispositivo).
+            <div className={`camara${capturando ? ' modo-luz' : ''}`} style={{ marginTop: 16 }}>
               <div className="camara-marco">
                 <video ref={video} autoPlay muted playsInline aria-label="Visor de cámara en vivo" />
                 <div className="camara-guia-ovalo" aria-hidden="true" />
@@ -310,6 +325,11 @@ export default function RegistroEnrolamiento() {
                 <Camera size={18} aria-hidden="true" />
                 {capturando ? 'Capturando…' : 'Capturar rostro'}
               </button>
+              {capturando && (
+                <button type="button" className="boton" onClick={() => busqueda.current?.abort()} style={{ marginTop: 8 }}>
+                  Cancelar captura
+                </button>
+              )}
 
               <p role="status" aria-live="polite" style={{ fontWeight: 600, color: descriptor ? 'var(--verde-ucsm)' : 'var(--gris-600)', marginTop: 8 }}>
                 {capturando

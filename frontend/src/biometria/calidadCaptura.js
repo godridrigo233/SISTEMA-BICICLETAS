@@ -13,7 +13,7 @@ export const UMBRALES_CALIDAD = Object.freeze({
   cabeceoMinimo: 0.18, // cabeceo: (nariz − ojos) / (mentón − ojos)
   cabeceoMaximo: 0.6,
   inclinacionMaxima: 18, // grados de la línea de los ojos
-  brilloMinimo: 45, // luminancia media del rostro (0–255)
+  brilloMinimo: 75, // luminancia media del rostro (0–255): por debajo, el descriptor pierde calidad
   brilloMaximo: 225,
 });
 

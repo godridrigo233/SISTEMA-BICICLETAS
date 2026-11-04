@@ -1110,6 +1110,23 @@ fieldset legend {
   gap: var(--espacio-2);
 }
 
+/* «Luz de pantalla» del enrolamiento: pantalla en blanco alrededor del video para iluminar el rostro. */
+.camara.modo-luz {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  margin: 0;
+  padding: var(--espacio-4, 24px);
+  justify-content: center;
+  background: #ffffff;
+  overflow-y: auto;
+}
+
+.camara.modo-luz .camara-marco,
+.camara.modo-luz video {
+  max-width: min(55vw, 360px);
+}
+
 .camara-marco {
   position: relative;
   width: 100%;
