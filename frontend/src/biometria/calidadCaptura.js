@@ -8,20 +8,20 @@ export const UMBRALES_CALIDAD = Object.freeze({
   anchoMinimoPx: 90, // ancho mínimo de la caja del rostro, en píxeles del video
   proporcionMinima: 0.12, // ancho del rostro / ancho del video: por debajo, el rostro está lejos (≈ 1 m o más)
   proporcionMaxima: 0.75, // por encima, el rostro está demasiado cerca
-  desvioMaximoCentro: 0.25, // desplazamiento máximo del centro del rostro respecto del centro del encuadre
-  simetriaMinima: 0.6, // giro lateral: distancia nariz–mandíbula menor / mayor
-  cabeceoMinimo: 0.2, // cabeceo: (nariz − ojos) / (mentón − ojos)
-  cabeceoMaximo: 0.55,
-  inclinacionMaxima: 15, // grados de la línea de los ojos
-  brilloMinimo: 60, // luminancia media del rostro (0–255)
-  brilloMaximo: 210,
+  desvioMaximoCentro: 0.3, // desplazamiento máximo del centro del rostro respecto del centro del encuadre
+  simetriaMinima: 0.55, // giro lateral: distancia nariz–mandíbula menor / mayor
+  cabeceoMinimo: 0.18, // cabeceo: (nariz − ojos) / (mentón − ojos)
+  cabeceoMaximo: 0.6,
+  inclinacionMaxima: 18, // grados de la línea de los ojos
+  brilloMinimo: 45, // luminancia media del rostro (0–255)
+  brilloMaximo: 225,
 });
 
 /** El enrolamiento genera la referencia de todos los retiros: se exige una pose más frontal. */
 export const UMBRALES_ENROLAMIENTO = Object.freeze({
   ...UMBRALES_CALIDAD,
-  simetriaMinima: 0.7,
-  inclinacionMaxima: 10,
+  simetriaMinima: 0.65,
+  inclinacionMaxima: 12,
 });
 
 const MENSAJES = {

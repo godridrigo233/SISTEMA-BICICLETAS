@@ -122,20 +122,32 @@ export function evaluarEncuadre(rostros, video, { umbrales = UMBRALES_CALIDAD, b
 const esperarMs = (ms) => new Promise((resolver) => { setTimeout(resolver, ms); });
 
 /**
- * Captura automática: analiza el video cada `intervaloMs` y solo calcula el descriptor cuando el rostro cumple
- * el control de calidad durante `cuadrosEstables` análisis seguidos (≈ 1 s), lo que evita capturar en pleno
- * movimiento. Informa cada análisis con `alCambiar` para guiar a quien mira la pantalla. Si en
- * `tiempoMaximoMs` no se logra una captura apta, falla con TIEMPO_AGOTADO y el último problema detectado.
- * `inicioCaptura` marca el inicio del cálculo del descriptor: la espera previa no cuenta en la latencia (RNF-01).
+ * El video está listo para analizarse cuando ya tiene dimensiones y datos para reproducir (readyState ≥ 3).
+ * La librería espera un evento «load» que los videos no emiten si se le entrega un video aún sin cargar, y la
+ * captura quedaría detenida; por eso no se analiza hasta que el video esté listo.
+ */
+export const videoListo = (video) => !video || typeof video.readyState !== 'number' || (video.readyState >= 3 && video.videoWidth > 0);
+
+/**
+ * Captura automática: analiza el video cada `intervaloMs` y calcula el descriptor cuando el rostro cumple el
+ * control de calidad en al menos `aptasRequeridas` de los últimos `ventana` análisis (≈ 1 s) y en el último.
+ * La ventana tolera un análisis aislado fuera de rango (el temblor normal de los puntos faciales) sin reiniciar
+ * la cuenta. Informa cada análisis con `alCambiar` para guiar a quien mira la pantalla y, si a los `avisoMs`
+ * aún no captura, avisa una vez con `alDemorar` y sigue intentando. Solo se detiene al cancelar o al superar
+ * `tiempoMaximoMs` (sin límite por defecto). `inicioCaptura` marca el inicio del cálculo del descriptor: la
+ * espera previa no cuenta en la latencia (RNF-01).
  */
 export async function capturarAutomaticamente(video, faceapi, opciones = {}) {
   const {
     destinatario = 'vigilante',
     umbrales = UMBRALES_CALIDAD,
-    cuadrosEstables = 5,
+    ventana = 6,
+    aptasRequeridas = 4,
     intervaloMs = 200,
-    tiempoMaximoMs = 10000,
+    avisoMs = 10000,
+    tiempoMaximoMs = Infinity,
     alCambiar = () => {},
+    alDemorar = () => {},
     senal,
     ahora = () => performance.now(),
     esperar = esperarMs,
@@ -144,35 +156,45 @@ export async function capturarAutomaticamente(video, faceapi, opciones = {}) {
   await cargarModelos(faceapi);
   const detector = new faceapi.SsdMobilenetv1Options({ minConfidence: CONFIANZA_MINIMA_DETECCION });
   const comienzo = ahora();
-  let estables = 0;
+  const historial = [];
+  let avisado = false;
   let ultimoProblema = 'NO_ROSTRO';
+  const cancelado = () => new ErrorBiometrico('CANCELADO', 'Captura cancelada.');
   for (;;) {
-    if (senal?.aborted) throw new ErrorBiometrico('CANCELADO', 'Captura cancelada.');
-    if (ahora() - comienzo > tiempoMaximoMs) {
-      throw new ErrorBiometrico('TIEMPO_AGOTADO', mensajeCalidad(ultimoProblema, destinatario));
+    if (senal?.aborted) throw cancelado();
+    const transcurrido = ahora() - comienzo;
+    if (transcurrido > tiempoMaximoMs) throw new ErrorBiometrico('TIEMPO_AGOTADO', mensajeCalidad(ultimoProblema, destinatario));
+    if (!avisado && transcurrido > avisoMs) {
+      avisado = true;
+      alDemorar(mensajeCalidad(ultimoProblema, destinatario));
+    }
+    if (!videoListo(video)) {
+      alCambiar({ apta: false, problema: null, mensaje: 'Iniciando la cámara…', estables: 0, cuadrosEstables: aptasRequeridas, metricas: {} });
+      await esperar(intervaloMs);
+      continue;
     }
     const rostros = await faceapi.detectAllFaces(video, detector).withFaceLandmarks();
-    if (senal?.aborted) throw new ErrorBiometrico('CANCELADO', 'Captura cancelada.');
+    if (senal?.aborted) throw cancelado();
     const evaluacion = evaluarEncuadre(rostros, video, { umbrales, brillo });
-    if (evaluacion.apta) {
-      estables += 1;
-    } else {
-      estables = 0;
-      ultimoProblema = evaluacion.problema;
-    }
+    historial.push(evaluacion.apta);
+    if (historial.length > ventana) historial.shift();
+    const aptas = historial.filter(Boolean).length;
+    if (!evaluacion.apta) ultimoProblema = evaluacion.problema;
     alCambiar({
       apta: evaluacion.apta,
       problema: evaluacion.problema,
       mensaje: evaluacion.apta ? 'Rostro en posición. Manténgalo así un momento…' : mensajeCalidad(evaluacion.problema, destinatario),
-      estables,
-      cuadrosEstables,
+      estables: evaluacion.apta ? aptas : 0,
+      cuadrosEstables: aptasRequeridas,
+      metricas: evaluacion.metricas,
     });
-    if (estables >= cuadrosEstables) {
+    if (evaluacion.apta && aptas >= aptasRequeridas) {
       const inicioCaptura = ahora();
       const completos = await faceapi.detectAllFaces(video, detector).withFaceLandmarks().withFaceDescriptors();
+      if (senal?.aborted) throw cancelado();
       const final = evaluarEncuadre(completos, video, { umbrales, brillo });
       if (final.apta) return { descriptor: seleccionarRostroUnico(completos), inicioCaptura, metricas: final.metricas };
-      estables = 0;
+      historial.length = 0;
       ultimoProblema = final.problema;
     }
     await esperar(intervaloMs);
@@ -199,9 +221,14 @@ export const DISTANCIA_MAXIMA_CONSISTENCIA = 0.25;
  */
 export async function capturarParaEnrolamiento(video, faceapi, opciones = {}) {
   const { alCambiar = () => {}, esperar = esperarMs, pausaMs = 1000 } = opciones;
-  const base = { ...opciones, destinatario: 'titular', umbrales: opciones.umbrales ?? UMBRALES_ENROLAMIENTO };
+  const base = {
+    tiempoMaximoMs: 20000,
+    ...opciones,
+    destinatario: 'titular',
+    umbrales: opciones.umbrales ?? UMBRALES_ENROLAMIENTO,
+  };
   const primera = await capturarAutomaticamente(video, faceapi, { ...base, alCambiar: (e) => alCambiar({ ...e, captura: 1 }) });
-  alCambiar({ apta: true, problema: null, mensaje: 'Primera captura lista. Siga mirando de frente a la cámara…', estables: 0, cuadrosEstables: 5, captura: 2 });
+  alCambiar({ apta: true, problema: null, mensaje: 'Primera captura lista. Siga mirando de frente a la cámara…', estables: 0, cuadrosEstables: 4, captura: 2 });
   await esperar(pausaMs);
   const segunda = await capturarAutomaticamente(video, faceapi, { ...base, alCambiar: (e) => alCambiar({ ...e, captura: 2 }) });
   const diferencia = distanciaEuclidiana(primera.descriptor, segunda.descriptor);

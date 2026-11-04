@@ -19,8 +19,8 @@ import { mensajeDeError } from '../../services/apiClient';
  * CU-04 en W2: captura del rostro, extracción del descriptor en el navegador y decisión en la API.
  * El video solo se muestra en vivo: ningún fotograma se guarda ni se envía (Ley N.º 29733).
  * La captura es automática: el sistema analiza el video y captura cuando el rostro cumple el control de calidad
- * durante un segundo; mientras tanto, indica al vigilante qué corregir. Si no lo logra en 10 s, ofrece la
- * captura manual.
+ * durante un segundo; mientras tanto, indica al vigilante qué corregir. Si a los 10 s no lo logra, sigue
+ * intentando y ofrece además la captura manual.
  */
 export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, permiteManual = false }) {
   const video = useRef(null);
@@ -36,6 +36,9 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
   const [manual, setManual] = useState(false);
   const [lento, setLento] = useState(false);
   const [estado, setEstado] = useState(null);
+  const [demora, setDemora] = useState('');
+  // Modo de diagnóstico para el ensayo previo a la Fase B: ?diagnostico muestra las métricas de calidad.
+  const [diagnostico] = useState(() => new URLSearchParams(window.location.search).has('diagnostico'));
   const busqueda = useRef(null);
 
   useEffect(() => {
@@ -70,7 +73,13 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     busqueda.current = control;
     setMensaje('');
     setEstado(null);
-    capturarAutomaticamente(video.current, faceapi.current, { destinatario: 'vigilante', senal: control.signal, alCambiar: setEstado })
+    setDemora('');
+    capturarAutomaticamente(video.current, faceapi.current, {
+      destinatario: 'vigilante',
+      senal: control.signal,
+      alCambiar: setEstado,
+      alDemorar: setDemora,
+    })
       .then(({ descriptor, inicioCaptura }) => {
         if (!control.signal.aborted) void verificar(descriptor, inicioCaptura);
       })
@@ -92,8 +101,8 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     seccion.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
   }, []);
   useEffect(() => {
-    if (fase === 'lista') botonCapturar.current?.focus();
-  }, [fase]);
+    if (fase === 'lista' || (fase === 'buscando' && demora)) botonCapturar.current?.focus();
+  }, [fase, demora]);
 
   // RNF-01: el reloj inicia con el cálculo del descriptor (no con la espera previa); la API suma su decisión.
   async function verificar(descriptor, inicioCaptura) {
@@ -275,7 +284,29 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
               {estado?.apta && ` (${Math.min(estado.estables, estado.cuadrosEstables)}/${estado.cuadrosEstables})`}
             </span>
           </div>
+          {diagnostico && estado?.metricas && (
+            <p className="ayuda" data-testid="diagnostico-calidad" style={{ fontFamily: 'monospace' }}>
+              {Object.entries(estado.metricas).map(([clave, valor]) => `${clave}: ${Number(valor).toFixed(2)}`).join(' · ')}
+            </p>
+          )}
+          {demora && (
+            <p className="ayuda" style={{ marginTop: 8 }}>
+              La captura automática sigue intentando. {demora} Si no lo logra, capture manualmente o derive al supervisor.
+            </p>
+          )}
           <div className="con-boton" style={{ marginTop: 12 }}>
+            {demora && (
+              <button
+                ref={botonCapturar}
+                type="button"
+                className="boton boton-primario"
+                onClick={capturar}
+                style={{ padding: '12px 24px', fontSize: '1rem' }}
+              >
+                <Camera size={20} aria-hidden="true" />
+                Capturar y verificar
+              </button>
+            )}
             <button type="button" className="boton" onClick={alCancelar}>
               Cancelar
             </button>

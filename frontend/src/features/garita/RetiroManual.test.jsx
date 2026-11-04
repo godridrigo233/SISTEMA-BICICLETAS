@@ -14,7 +14,10 @@ vi.mock('../../biometria/extractorFacial', () => ({
   extraerDescriptor: vi.fn(),
   abrirCamara: vi.fn(() => navigator.mediaDevices.getUserMedia()),
   // La captura automática no logra la calidad en las pruebas de componente: se ejercita el respaldo manual.
-  capturarAutomaticamente: vi.fn(() => Promise.reject(Object.assign(new Error('Pida al estudiante que mire de frente a la cámara.'), { codigo: 'TIEMPO_AGOTADO' }))),
+  capturarAutomaticamente: vi.fn((_video, _faceapi, { alDemorar } = {}) => {
+    alDemorar?.('Pida al estudiante que mire de frente a la cámara.');
+    return new Promise(() => {});
+  }),
   capturarParaEnrolamiento: vi.fn(),
 }));
 

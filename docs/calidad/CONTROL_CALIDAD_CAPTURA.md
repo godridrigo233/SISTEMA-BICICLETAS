@@ -22,20 +22,25 @@ el descriptor.
 | Criterio | Medida (a partir de la caja y los 68 puntos faciales) | Retiro | Enrolamiento |
 |---|---|---|---|
 | Distancia | Ancho del rostro ≥ 90 px y ≥ 12 % del ancho del video; ≤ 75 % | Sí | Sí |
-| Centrado | Centro del rostro a ≤ 25 % del centro del encuadre y rostro completo en el encuadre | Sí | Sí |
-| Giro lateral | Distancia nariz–mandíbula menor / mayor ≥ 0.6 | 0.6 | 0.7 |
-| Cabeceo | (nariz − ojos) / (mentón − ojos) entre 0.20 y 0.55 | Sí | Sí |
-| Inclinación | Ángulo de la línea de los ojos ≤ 15° | 15° | 10° |
-| Iluminación | Luminancia media del rostro entre 60 y 210 (0–255) | Sí | Sí |
+| Centrado | Centro del rostro a ≤ 30 % del centro del encuadre y rostro completo en el encuadre | Sí | Sí |
+| Giro lateral | Distancia nariz–mandíbula menor / mayor | ≥ 0.55 | ≥ 0.65 |
+| Cabeceo | (nariz − ojos) / (mentón − ojos) entre 0.18 y 0.60 | Sí | Sí |
+| Inclinación | Ángulo de la línea de los ojos | ≤ 18° | ≤ 12° |
+| Iluminación | Luminancia media del rostro entre 45 y 225 (0–255) | Sí | Sí |
 
 ## Flujo
 
-- **Retiro (W2):** la captura es automática. El video se analiza cada 200 ms y el descriptor se calcula solo
-  cuando el rostro cumple los criterios durante 5 análisis seguidos (≈ 1 s). Mientras tanto, la pantalla indica
-  al vigilante qué corregir («Pida al estudiante que mire de frente a la cámara»). Si en 10 s no se logra, se
-  informa el último problema y se ofrecen la captura manual (respaldo, sin control de calidad) o reanudar la
-  captura automática.
-- **Enrolamiento (W4):** dos capturas automáticas con los criterios más exigentes. Solo se acepta si la
+- **Retiro (W2):** la captura es automática. El análisis empieza cuando el video de la cámara está listo
+  (readyState ≥ 3); antes, la librería se quedaba esperando un evento que los videos no emiten. El video se
+  analiza cada 200 ms y el descriptor se calcula cuando el rostro cumple los criterios en al menos 4 de los
+  últimos 6 análisis y en el último (≈ 1 s), lo que tolera el temblor normal de los puntos faciales. La pantalla
+  indica al vigilante qué corregir («Pida al estudiante que mire de frente a la cámara»). Si a los 10 s no se
+  logra, se avisa del último problema y se ofrece además la captura manual (respaldo, sin control de calidad),
+  pero la captura automática sigue intentando.
+- **Diagnóstico:** con `?diagnostico` en la dirección de la página, la garita muestra las métricas de cada
+  análisis, para ajustar los umbrales en el ensayo previo a la Fase B.
+- **Enrolamiento (W4):** al pulsar «Capturar rostro», dos capturas automáticas con los criterios más exigentes
+  (hasta 20 s cada una). Solo se acepta si la
   distancia entre ambas es ≤ 0.25; se conserva una sola (la primera), igual que en la calibración de θ, y la
   segunda se descarta.
 - **Cámara:** se solicita 1280 × 720 cuando el equipo lo permite (antes, el valor por defecto, 640 × 480).
@@ -50,7 +55,7 @@ decisión. Es la misma definición que tenía la captura con clic.
 
 - El control debe quedar fijo antes de la Fase B, para que la evaluación mida el sistema final.
 - Conforme a ISO/IEC 19795-1, además del FMR y el FNMR se reporta la **tasa de fallo de adquisición (FTA)**:
-  proporción de intentos en los que no se logró una captura apta en el tiempo previsto (TIEMPO_AGOTADO) y se
-  usó la captura manual o la derivación.
+  proporción de intentos en los que no se logró una captura automática apta y se usó la captura manual o la
+  derivación.
 - Antes de la Fase B se recomienda un ensayo de 10 retiros con un titular enrolado para confirmar que los
   umbrales no bloquean capturas frontales y que la latencia se mantiene por debajo de 2 s.
