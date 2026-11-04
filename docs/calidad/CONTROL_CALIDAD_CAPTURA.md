@@ -26,7 +26,7 @@ el descriptor.
 | Giro lateral | Distancia nariz–mandíbula menor / mayor | ≥ 0.55 | ≥ 0.65 |
 | Cabeceo | (nariz − ojos) / (mentón − ojos) entre 0.18 y 0.60 | Sí | Sí |
 | Inclinación | Ángulo de la línea de los ojos | ≤ 18° | ≤ 12° |
-| Iluminación | Luminancia media del rostro entre 45 y 225 (0–255) | Sí | Sí |
+| Iluminación | Luminancia media del rostro entre 75 y 225 (0–255) | Sí | Sí |
 
 ## Flujo
 
@@ -44,6 +44,24 @@ el descriptor.
   distancia entre ambas es ≤ 0.25; se conserva una sola (la primera), igual que en la calibración de θ, y la
   segunda se descarta.
 - **Cámara:** se solicita 1280 × 720 cuando el equipo lo permite (antes, el valor por defecto, 640 × 480).
+
+## Iluminación
+
+Con poca luz, el descriptor del titular se aleja del de referencia (en las pruebas, distancias cercanas a 0.40
+que se rechazaban con θ = 0.37 y mejoraban al iluminar el rostro). No se sube θ: la menor distancia impostora
+de la Fase A fue 0.4220. En su lugar:
+
+- **Mínimo de luz:** el control no captura si la luminancia del rostro es menor de 75 e indica «Falta luz».
+- **Exposición automática de la cámara:** si el rostro está oscuro, la página sube un paso la compensación de
+  exposición (o el brillo) de la cámara, cuando el navegador y la cámara exponen ese control (Chrome con muchas
+  webcams en Windows y Android). Es un ajuste de la adquisición, como mejorar la luz; la imagen no se procesa.
+- **Pantalla encendida:** se solicita el bloqueo de pantalla (Screen Wake Lock) para que el equipo no atenúe la
+  pantalla durante la verificación.
+- **Luz de pantalla en el enrolamiento:** durante la captura, la pantalla se pone en blanco alrededor del video
+  para iluminar el rostro de quien la mira. Una página web no puede subir el brillo del dispositivo; solo una
+  aplicación nativa podría hacerlo.
+- **Garita:** la pantalla mira al vigilante, no al estudiante, por lo que la luz de pantalla no lo ilumina. Se
+  recomienda una fuente de luz frontal (panel LED o aro de luz) junto a la cámara como requisito de instalación.
 
 ## Latencia (RNF-01)
 

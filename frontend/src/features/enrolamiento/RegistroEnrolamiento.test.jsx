@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RegistroEnrolamiento from './RegistroEnrolamiento';
@@ -106,5 +106,33 @@ describe('W4 · Captura automática del enrolamiento', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Las dos capturas no coinciden');
     expect(screen.getByRole('button', { name: 'Completar registro' })).toBeDisabled();
     expect(vi.mocked(capturarParaEnrolamiento).mock.calls[0][2]).toMatchObject({ senal: expect.any(AbortSignal) });
+  });
+});
+
+describe('W4 · Luz de pantalla durante la captura', () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }) },
+    });
+    vi.mocked(obtenerPerfil).mockResolvedValue(perfil);
+  });
+  afterEach(() => vi.clearAllMocks());
+
+  it('mientras captura, pone la pantalla en blanco alrededor del video y permite cancelar', async () => {
+    let cancelar;
+    vi.mocked(capturarParaEnrolamiento).mockImplementationOnce((_v, _f, { senal }) => new Promise((_ok, fallar) => {
+      cancelar = () => fallar(Object.assign(new Error('Captura cancelada.'), { codigo: 'CANCELADO' }));
+      senal.addEventListener('abort', cancelar);
+    }));
+    const usuario = userEvent.setup();
+    const { container } = render(<RegistroEnrolamiento />);
+    await usuario.click(await screen.findByRole('checkbox'));
+    await usuario.click(await screen.findByRole('button', { name: 'Capturar rostro' }));
+
+    expect(container.querySelector('.camara.modo-luz')).not.toBeNull();
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar captura' }));
+    await waitFor(() => expect(container.querySelector('.camara.modo-luz')).toBeNull());
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
