@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import VerificacionRetiro from './VerificacionRetiro';
-import { extraerDescriptor } from '../../biometria/extractorFacial';
+import { capturarAutomaticamente, extraerDescriptor } from '../../biometria/extractorFacial';
 import { autorizarRetiro } from '../../services/garitaService';
 
 vi.mock('../../services/garitaService', () => ({ autorizarRetiro: vi.fn() }));
@@ -12,6 +12,10 @@ vi.mock('../../biometria/extractorFacial', () => ({
   obtenerFaceApi: vi.fn().mockResolvedValue({}),
   cargarModelos: vi.fn().mockResolvedValue([]),
   extraerDescriptor: vi.fn(),
+  abrirCamara: vi.fn(() => navigator.mediaDevices.getUserMedia()),
+  // La captura automática no logra la calidad en las pruebas de componente: se ejercita el respaldo manual.
+  capturarAutomaticamente: vi.fn(() => Promise.reject(Object.assign(new Error('Pida al estudiante que mire de frente a la cámara.'), { codigo: 'TIEMPO_AGOTADO' }))),
+  capturarParaEnrolamiento: vi.fn(),
 }));
 
 const bicicleta = { idBicicleta: 'b-1', titular: 'ALUMNO UNO', marcaModelo: 'Marca', color: 'Rojo' };
@@ -110,5 +114,45 @@ describe('W2 · Verificación facial del retiro (CU-04)', () => {
     expect(screen.getByText('Se acepta hasta 0.37')).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(alCancelar).toHaveBeenCalledOnce();
+  });
+});
+
+describe('W2 · Captura automática del retiro', () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }) },
+    });
+  });
+  afterEach(() => vi.clearAllMocks());
+
+  it('captura sola cuando la calidad se cumple y envía el descriptor sin que el vigilante haga clic', async () => {
+    vi.mocked(capturarAutomaticamente).mockResolvedValueOnce({ descriptor: new Array(128).fill(0.1), inicioCaptura: performance.now() });
+    vi.mocked(autorizarRetiro).mockResolvedValue({ resultado: 'AUTORIZADO', estadoActualizado: 'FUERA', distanciaEuclidiana: 0.21, umbralTheta: 0.37 });
+    const alTerminar = montar();
+
+    await waitFor(() => expect(autorizarRetiro).toHaveBeenCalledWith('b-1', expect.any(Array), expect.any(Number)));
+    expect(vi.mocked(capturarAutomaticamente).mock.calls[0][2]).toMatchObject({ destinatario: 'vigilante' });
+    expect(extraerDescriptor).not.toHaveBeenCalled();
+    await waitFor(() => expect(alTerminar).toHaveBeenCalledWith(expect.objectContaining({ resultado: 'EXITOSO' })));
+  });
+
+  it('mientras busca, indica al vigilante qué corregir (Nielsen H1)', async () => {
+    vi.mocked(capturarAutomaticamente).mockImplementationOnce((_v, _f, { alCambiar }) => {
+      alCambiar({ apta: false, problema: 'NO_DE_FRENTE', mensaje: 'Pida al estudiante que mire de frente a la cámara.', estables: 0, cuadrosEstables: 5 });
+      return new Promise(() => {});
+    });
+    montar();
+    await waitFor(() => expect(screen.getByText(/Captura automática:/).parentElement).toHaveTextContent('Pida al estudiante que mire de frente a la cámara.'));
+    expect(screen.queryByRole('button', { name: 'Capturar y verificar' })).not.toBeInTheDocument();
+  });
+
+  it('si se agota el tiempo, explica el problema y ofrece la captura manual o reanudar', async () => {
+    const usuario = userEvent.setup();
+    montar();
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se logró una captura con buena calidad');
+    expect(screen.getByRole('button', { name: 'Capturar y verificar' })).toBeEnabled();
+    await usuario.click(screen.getByRole('button', { name: 'Reanudar captura automática' }));
+    await waitFor(() => expect(capturarAutomaticamente).toHaveBeenCalledTimes(2));
   });
 });
