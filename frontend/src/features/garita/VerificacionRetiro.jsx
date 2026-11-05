@@ -8,6 +8,7 @@ import {
   ScanFace,
   ShieldAlert,
   ShieldCheck,
+  Sun,
   UserCheck,
   XCircle,
 } from 'lucide-react';
@@ -23,6 +24,8 @@ import { crearAjusteExposicion, mantenerPantallaEncendida } from '../../biometri
  * durante un segundo; mientras tanto, indica al vigilante qué corregir. Si a los 10 s no lo logra, sigue
  * intentando y ofrece además la captura manual.
  */
+const CLAVE_LUZ = 'garita.luzPantalla';
+
 export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, permiteManual = false }) {
   const video = useRef(null);
   const seccion = useRef(null);
@@ -38,6 +41,11 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
   const [lento, setLento] = useState(false);
   const [estado, setEstado] = useState(null);
   const [demora, setDemora] = useState('');
+  // «Luz de pantalla»: opcional en la garita, para cuando la pantalla mira al estudiante (p. ej., un segundo
+  // monitor o una tableta). Se recuerda en este navegador.
+  const [luzPantalla, setLuzPantalla] = useState(() => {
+    try { return localStorage.getItem(CLAVE_LUZ) === '1'; } catch { return false; }
+  });
   // Modo de diagnóstico para el ensayo previo a la Fase B: ?diagnostico muestra las métricas de calidad.
   const [diagnostico] = useState(() => new URLSearchParams(window.location.search).has('diagnostico'));
   const busqueda = useRef(null);
@@ -50,6 +58,14 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
       try {
         faceapi.current = await prepararBiometria();
         if (activo) setLento(sinAceleracionGrafica(faceapi.current));
+      } catch {
+        if (activo) {
+          setFase('sin-camara');
+          setMensaje('No se pudo cargar el reconocimiento facial. Recargue la página; si persiste, active la aceleración gráfica del navegador o derive al supervisor.');
+        }
+        return;
+      }
+      try {
         flujo.current = await abrirCamara();
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
@@ -182,7 +198,66 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
     });
   }
 
+  function alternarLuz() {
+    setLuzPantalla((actual) => {
+      try { localStorage.setItem(CLAVE_LUZ, actual ? '0' : '1'); } catch { /* sin almacenamiento: solo esta sesión */ }
+      return !actual;
+    });
+  }
+
+  const modoLuz = luzPantalla && fase === 'buscando';
   const porcentaje = resultado ? Math.min(100, (resultado.distanciaEuclidiana / 1) * 100) : 0;
+
+  const panelBusqueda = (
+    <>
+          {/* Nielsen H1: estado de la captura automática y qué corregir, en lenguaje del vigilante. */}
+          <div className={estado?.apta ? 'exito' : 'aviso'} role="status" aria-live="polite" style={{ marginTop: 12 }}>
+            {estado?.apta ? (
+              <CheckCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
+            ) : (
+              <ScanFace size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
+            )}
+            <span>
+              <strong>Captura automática:</strong> {estado?.mensaje ?? 'Buscando el rostro del estudiante…'}
+              {estado?.apta && ` (${Math.min(estado.estables, estado.cuadrosEstables)}/${estado.cuadrosEstables})`}
+            </span>
+          </div>
+          {diagnostico && estado?.metricas && (
+            <p className="ayuda" data-testid="diagnostico-calidad" style={{ fontFamily: 'monospace' }}>
+              {Object.entries(estado.metricas).map(([clave, valor]) => `${clave}: ${Number(valor).toFixed(2)}`).join(' · ')}
+            </p>
+          )}
+          {demora && (
+            <p className="ayuda" style={{ marginTop: 8 }}>
+              La captura automática sigue intentando. {demora} Si no lo logra, capture manualmente o derive al supervisor.
+            </p>
+          )}
+          <div className="con-boton" style={{ marginTop: 12 }}>
+            {demora && (
+              <button
+                ref={botonCapturar}
+                type="button"
+                className="boton boton-primario"
+                onClick={capturar}
+                style={{ padding: '12px 24px', fontSize: '1rem' }}
+              >
+                <Camera size={20} aria-hidden="true" />
+                Capturar y verificar
+              </button>
+            )}
+            <button type="button" className="boton" aria-pressed={luzPantalla} onClick={alternarLuz}>
+              <Sun size={18} aria-hidden="true" />
+              {luzPantalla ? 'Apagar luz de pantalla' : 'Iluminar con la pantalla'}
+            </button>
+            <button type="button" className="boton" onClick={alCancelar}>
+              Cancelar
+            </button>
+          </div>
+          <p className="ayuda" style={{ marginTop: 4 }}>
+            «Iluminar con la pantalla» sirve solo si la pantalla mira al estudiante; en la garita habitual, use una luz frontal.
+          </p>
+    </>
+  );
 
   return (
     <section ref={seccion} className="ficha" aria-label="Verificación facial del retiro" style={{ marginTop: 16, background: '#fafbfa', border: '1px solid var(--verde-borde)' }}>
@@ -192,7 +267,7 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
       </h2>
 
       {/* Visor de cámara con marco y guía ovalada superpuesta (SOLO CSS) */}
-      <div className="camara">
+      <div className={`camara${modoLuz ? ' modo-luz' : ''}`}>
         <div className="camara-marco">
           <video ref={video} autoPlay muted playsInline aria-label="Video en vivo de la cámara" />
           <div className="camara-guia-ovalo" aria-hidden="true" />
@@ -202,12 +277,13 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
           <Camera size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
           <span>
             <strong>Oriente la cámara hacia el rostro del estudiante</strong> y pídale que mire de frente a la cámara, sin gorra
-            ni lentes oscuros, a unos 50–80 cm. El estudiante no ve la pantalla: solo debe mirar a la cámara.
+            ni lentes, a unos 50–80 cm. El estudiante no ve la pantalla: solo debe mirar a la cámara.
           </span>
         </p>
         <p className="ayuda" style={{ textAlign: 'center', marginTop: 4 }}>
           Un único rostro dentro del óvalo, con buena iluminación. No se guarda ninguna imagen.
         </p>
+        {modoLuz && panelBusqueda}
       </div>
 
       {fase === 'preparando' && (
@@ -282,47 +358,7 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
           </div>
         </>
       ) : fase === 'buscando' ? (
-        <>
-          {/* Nielsen H1: estado de la captura automática y qué corregir, en lenguaje del vigilante. */}
-          <div className={estado?.apta ? 'exito' : 'aviso'} role="status" aria-live="polite" style={{ marginTop: 12 }}>
-            {estado?.apta ? (
-              <CheckCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
-            ) : (
-              <ScanFace size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
-            )}
-            <span>
-              <strong>Captura automática:</strong> {estado?.mensaje ?? 'Buscando el rostro del estudiante…'}
-              {estado?.apta && ` (${Math.min(estado.estables, estado.cuadrosEstables)}/${estado.cuadrosEstables})`}
-            </span>
-          </div>
-          {diagnostico && estado?.metricas && (
-            <p className="ayuda" data-testid="diagnostico-calidad" style={{ fontFamily: 'monospace' }}>
-              {Object.entries(estado.metricas).map(([clave, valor]) => `${clave}: ${Number(valor).toFixed(2)}`).join(' · ')}
-            </p>
-          )}
-          {demora && (
-            <p className="ayuda" style={{ marginTop: 8 }}>
-              La captura automática sigue intentando. {demora} Si no lo logra, capture manualmente o derive al supervisor.
-            </p>
-          )}
-          <div className="con-boton" style={{ marginTop: 12 }}>
-            {demora && (
-              <button
-                ref={botonCapturar}
-                type="button"
-                className="boton boton-primario"
-                onClick={capturar}
-                style={{ padding: '12px 24px', fontSize: '1rem' }}
-              >
-                <Camera size={20} aria-hidden="true" />
-                Capturar y verificar
-              </button>
-            )}
-            <button type="button" className="boton" onClick={alCancelar}>
-              Cancelar
-            </button>
-          </div>
-        </>
+        modoLuz ? null : panelBusqueda
       ) : (
         <div className="con-boton" style={{ marginTop: 12 }}>
           {(fase === 'lista' || fase === 'verificando') && (

@@ -4,7 +4,7 @@ Suite automatizada de pruebas end-to-end para el **Sistema de Control de Accesos
 
 > [!IMPORTANT]
 > **Protección de Datos y Secretos:**
-> Las credenciales y URLs **nunca** se versionan en el código ni en archivos de este repositorio. Se configuran mediante variables de entorno en el equipo local o mediante **GitHub Secrets / Variables** en GitHub Actions. No se prueba la verificación facial biométrica en esta suite (requiere cámara y presencia física).
+> Las credenciales y URLs **nunca** se versionan en el código ni en archivos de este repositorio. Se configuran mediante variables de entorno en el equipo local o mediante **GitHub Secrets / Variables** en GitHub Actions. La decisión biométrica real no se prueba en esta suite (requiere la presencia del titular); el escenario 06 verifica la captura en el navegador con una cámara simulada y una respuesta simulada de la API.
 
 > [!CAUTION]
 > **Modo Solo Lectura vs. Modo de Escritura (`E2E_PERMITIR_ESCRITURA`):**
@@ -24,6 +24,7 @@ Suite automatizada de pruebas end-to-end para el **Sistema de Control de Accesos
    - Con `E2E_PERMITIR_ESCRITURA="false"`: carga el CSV, verifica la vista previa autocompletada, abre el modal «Importar y conciliar», comprueba el resumen y pulsa «Cancelar».
    - Con `E2E_PERMITIR_ESCRITURA="true"`: si la bicicleta de prueba ya está `DENTRO`, genera un `RETIRO` con DNI en vez de `INGRESO` para prevenir conflictos de conciliación, confirma la importación y valida el mensaje «Se importaron N filas y se procesó el lote» asegurando `0 conflictos`.
 5. **`05-monitoreo-reportes.spec.js`**: Panel de monitoreo: verificación de KPIs, aplicación de filtros de auditoría y descarga de reporte en formato CSV generado por la API.
+6. **`06-garita-retiro-captura.spec.js`**: Retiro con captura automática usando una cámara simulada (un video con un rostro). Verifica que el navegador espera a la cámara, aplica el control de calidad, captura sin clic y envía solo el descriptor de 128 valores. La respuesta de la API se simula, por lo que **no escribe** en `auditoria_accesos`. Requiere que la bicicleta de prueba figure `DENTRO`. El video se toma de `E2E_VIDEO_ROSTRO` o se genera con `ffmpeg` a partir de una imagen de demostración pública de la librería facial (`frontend/node_modules`); ningún rostro se versiona.
 
 ---
 

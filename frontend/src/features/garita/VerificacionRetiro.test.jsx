@@ -157,3 +157,59 @@ describe('W2 · Captura automática del retiro', () => {
     expect(screen.getByText(/Captura automática:/)).toBeInTheDocument();
   });
 });
+
+describe('W2 · Luz de pantalla opcional en la garita', () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }) },
+    });
+    localStorage.clear();
+  });
+  afterEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+
+  it('al activarla, pone la pantalla en blanco alrededor del video mientras busca el rostro y lo recuerda', async () => {
+    const usuario = userEvent.setup();
+    const { container, unmount } = render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
+    const boton = await screen.findByRole('button', { name: 'Iluminar con la pantalla' });
+    expect(container.querySelector('.camara.modo-luz')).toBeNull();
+
+    await usuario.click(boton);
+    expect(container.querySelector('.camara.modo-luz')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Apagar luz de pantalla' })).toHaveAttribute('aria-pressed', 'true');
+    expect(container.querySelector('.camara.modo-luz')).toHaveTextContent('Captura automática:');
+    expect(localStorage.getItem('garita.luzPantalla')).toBe('1');
+
+    unmount();
+    const segundo = render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
+    await waitFor(() => expect(segundo.container.querySelector('.camara.modo-luz')).not.toBeNull());
+  });
+});
+
+describe('W2 · Indicación sobre los lentes', () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }) },
+    });
+  });
+
+  it('pide al estudiante que se quite cualquier lente, no solo los oscuros', async () => {
+    montar();
+    expect(await screen.findByText(/sin gorra\s+ni lentes, a unos 50–80 cm/)).toBeInTheDocument();
+  });
+});
+
+describe('W2 · Falla al cargar el reconocimiento facial', () => {
+  it('distingue la falla de la librería de la falta de cámara (Nielsen H9)', async () => {
+    const { prepararBiometria } = await import('../../biometria/extractorFacial');
+    vi.mocked(prepararBiometria).mockRejectedValueOnce(new Error('webgl'));
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }) },
+    });
+    montar();
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar el reconocimiento facial');
+    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+  });
+});
