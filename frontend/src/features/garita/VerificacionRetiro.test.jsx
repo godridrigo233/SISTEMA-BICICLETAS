@@ -157,3 +157,31 @@ describe('W2 · Captura automática del retiro', () => {
     expect(screen.getByText(/Captura automática:/)).toBeInTheDocument();
   });
 });
+
+describe('W2 · Luz de pantalla opcional en la garita', () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }) },
+    });
+    localStorage.clear();
+  });
+  afterEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+
+  it('al activarla, pone la pantalla en blanco alrededor del video mientras busca el rostro y lo recuerda', async () => {
+    const usuario = userEvent.setup();
+    const { container, unmount } = render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
+    const boton = await screen.findByRole('button', { name: 'Iluminar con la pantalla' });
+    expect(container.querySelector('.camara.modo-luz')).toBeNull();
+
+    await usuario.click(boton);
+    expect(container.querySelector('.camara.modo-luz')).not.toBeNull();
+    expect(screen.getByRole('button', { name: 'Apagar luz de pantalla' })).toHaveAttribute('aria-pressed', 'true');
+    expect(container.querySelector('.camara.modo-luz')).toHaveTextContent('Captura automática:');
+    expect(localStorage.getItem('garita.luzPantalla')).toBe('1');
+
+    unmount();
+    const segundo = render(<VerificacionRetiro bicicleta={bicicleta} alTerminar={vi.fn()} alCancelar={vi.fn()} />);
+    await waitFor(() => expect(segundo.container.querySelector('.camara.modo-luz')).not.toBeNull());
+  });
+});
