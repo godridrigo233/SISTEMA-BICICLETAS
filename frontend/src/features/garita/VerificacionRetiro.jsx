@@ -58,6 +58,14 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
       try {
         faceapi.current = await prepararBiometria();
         if (activo) setLento(sinAceleracionGrafica(faceapi.current));
+      } catch {
+        if (activo) {
+          setFase('sin-camara');
+          setMensaje('No se pudo cargar el reconocimiento facial. Recargue la página; si persiste, active la aceleración gráfica del navegador o derive al supervisor.');
+        }
+        return;
+      }
+      try {
         flujo.current = await abrirCamara();
         if (!activo) return;
         if (video.current) video.current.srcObject = flujo.current;
@@ -269,7 +277,7 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
           <Camera size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
           <span>
             <strong>Oriente la cámara hacia el rostro del estudiante</strong> y pídale que mire de frente a la cámara, sin gorra
-            ni lentes oscuros, a unos 50–80 cm. El estudiante no ve la pantalla: solo debe mirar a la cámara.
+            ni lentes, a unos 50–80 cm. El estudiante no ve la pantalla: solo debe mirar a la cámara.
           </span>
         </p>
         <p className="ayuda" style={{ textAlign: 'center', marginTop: 4 }}>

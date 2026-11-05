@@ -312,7 +312,7 @@ export default function RegistroEnrolamiento() {
               )}
 
               <p className="ayuda" style={{ textAlign: 'center' }}>
-                Un único rostro, centrado, con buena iluminación y sin lentes oscuros ni mascarilla.
+                Un único rostro, centrado, con buena iluminación, sin lentes ni mascarilla.
               </p>
 
               <button
