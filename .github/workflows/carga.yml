@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       base_url:
-        description: 'URL base de la API REST (opcional; si se omite usa K6_BASE_URL de Secrets/Variables)'
+        description: 'URL base de la API REST, completa con https:// (déjelo vacío para usar el secreto K6_BASE_URL)'
         required: false
         type: string
         default: ''
