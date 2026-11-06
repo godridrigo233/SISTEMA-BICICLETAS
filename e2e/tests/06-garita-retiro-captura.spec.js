@@ -46,9 +46,11 @@ test.use({
     args: [
       '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
-      // Equipos sin GPU (contenedores, CI): WebGL por software para que la librería facial funcione.
       '--ignore-gpu-blocklist',
       '--enable-unsafe-swiftshader',
+      // Equipos sin GPU (contenedores, CI): E2E_GPU_SOFTWARE=1 fuerza WebGL por software (SwiftShader) para que la
+      // librería facial pueda ejecutarse. La latencia medida así no es representativa.
+      ...(process.env.E2E_GPU_SOFTWARE === '1' ? ['--use-angle=swiftshader', '--use-gl=angle'] : []),
       ...(video ? [`--use-file-for-fake-video-capture=${video}`] : []),
     ],
   },
