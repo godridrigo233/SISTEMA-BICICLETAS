@@ -11,6 +11,19 @@ on:
         required: false
         type: string
         default: ''
+      modo:
+        description: 'carga = 10 VUs durante 2 min (RNF-01); escalonada = sube los VUs por niveles para hallar la capacidad máxima (siempre de solo lectura, ~16 min).'
+        required: false
+        type: choice
+        options:
+          - carga
+          - escalonada
+        default: carga
+      niveles:
+        description: 'Solo modo escalonada: niveles de VUs separados por comas.'
+        required: false
+        type: string
+        default: '10,25,50,100,150'
       permitir_escritura:
         description: 'Permitir operaciones de escritura (true/false). PRECAUCIÓN: true solo debe usarse contra base de datos de prueba, nunca contra el piloto.'
         required: false
@@ -26,8 +39,9 @@ concurrency:
 
 jobs:
   carga:
-    name: Prueba de Carga RNF-01 (10 VUs - 2m)
+    name: Prueba de Carga RNF-01 (${{ inputs.modo == 'escalonada' && 'escalonada' || '10 VUs - 2m' }})
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Descargar código fuente
         uses: actions/checkout@v5
@@ -42,6 +56,8 @@ jobs:
           K6_PASSWORD: ${{ secrets.K6_PASSWORD }}
           K6_CODIGO_QR: ${{ secrets.K6_CODIGO_QR || vars.K6_CODIGO_QR }}
           K6_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura }}
+          K6_MODO: ${{ inputs.modo || 'carga' }}
+          K6_NIVELES: ${{ inputs.niveles || '10,25,50,100,150' }}
         run: |
           mkdir -p tests/carga/resultados
           k6 run tests/carga/rnf01-carga.js
