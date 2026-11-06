@@ -7,10 +7,11 @@ Define qué versión se considera estable, cuándo se revierte y cómo se hace e
 
 | Etiqueta | Cuándo se crea | Uso |
 |---|---|---|
-| `v1.0-rc1` | Al fusionar las mejoras de la captura biométrica | Versión candidata para el ensayo de 10 retiros |
-| `v1.0` | Tras el ensayo, si no requiere ajustes | Versión congelada para la Fase B y el piloto. Desde aquí solo se corrigen defectos |
+| `v1.0` | Tras el ensayo de 10 retiros con un titular enrolado, si no requiere ajustes | Versión congelada para la Fase B y el piloto. Desde aquí solo se corrigen defectos |
 
-Crear una etiqueta sobre `main` (la etiqueta apunta al despliegue que está en producción):
+El ensayo se ejecuta con la versión desplegada en `main` (commit `6969d1b`), que se registra en la Práctica 09.
+
+Crear la etiqueta sobre `main` (apunta al despliegue que está en producción), desde la terminal o en GitHub → *Releases* → *Draft a new release* → etiqueta `v1.0` sobre `main`:
 
 ```bash
 git checkout main && git pull
