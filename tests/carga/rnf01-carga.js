@@ -113,6 +113,10 @@ export function setup() {
   const password = __ENV.K6_PASSWORD;
   const codigoQr = __ENV.K6_CODIGO_QR || 'b0000000-0000-4000-8000-0000000000a1';
 
+  if (!/^https?:\/\/[^\s/]+/i.test(baseUrl)) {
+    throw new Error(`URL base no válida: "${baseUrl}". Deje vacío el campo base_url del workflow (usa el secreto K6_BASE_URL) o escriba la dirección completa, p. ej. https://<servicio>.onrender.com.`);
+  }
+
   if (!correo || !password) {
     throw new Error('Variables de entorno obligatorias no definidas: especifique K6_CORREO y K6_PASSWORD.');
   }
