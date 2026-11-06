@@ -45,6 +45,8 @@ Suite automatizada de pruebas end-to-end para el **Sistema de Control de Accesos
 | `E2E_BICICLETA_QR` | Código QR (UUID) de la bicicleta de prueba | Registro sintético S001 |
 | `E2E_ESTUDIANTE_DNI` | DNI del estudiante titular de la bicicleta de prueba (para retiros) | `00000001` |
 | `E2E_VIGILANTE_EMAIL` | Correo del vigilante para registro en contingencias | `E2E_GARITERO_EMAIL` |
+| `E2E_VIDEO_ROSTRO` | Video (.y4m o .mjpeg) con un rostro para la cámara simulada del escenario 06 | Se genera con ffmpeg |
+| `E2E_GPU_SOFTWARE` | `1` en equipos sin GPU (contenedores, CI): WebGL por software para la librería facial | — |
 
 > [!NOTE]
 > Si no se definen las credenciales para un rol específico durante una ejecución local, la prueba correspondiente se omitirá de forma limpia indicando qué variable falta.
