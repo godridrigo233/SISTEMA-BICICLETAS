@@ -220,7 +220,8 @@ Se activa ante cualquier evento de `push` a cualquier rama, en solicitudes de ex
   * `http_req_duration{escenario:consulta}`: Percentil 95 menor a 2000 ms (`p(95) < 2000`).
   * `http_req_failed{escenario:consulta}`: Tasa de fallos menor al 1 % (`rate < 0.01`).
   * Al menos una solicitud ejecutada en el escenario (`http_reqs{escenario:consulta}`: `count > 0`), lo que impide aprobar el ensayo sin tráfico real.
-* **Resultados:** Los reportes generados se consolidan en la carpeta `tests/carga/resultados/` y se almacenan como artefacto con retención de 14 días.
+* **Modo escalonado (`modo = escalonada`):** Determina la capacidad máxima del sistema. Sube los VUs por niveles (`niveles`, por defecto 10, 25, 50, 100 y 150), con una rampa de 60 s y una meseta medida de 120 s por nivel (≈ 16 min en total). Para cada nivel reporta solicitudes, solicitudes por segundo, media, p95, máximo y tasa de error, y concluye cuál es el mayor nivel que, junto con los anteriores, mantiene p95 < 2000 ms y errores < 1 %. Es siempre de solo lectura, cuenta como error toda solicitud que supere 10 s y se detiene sola si los errores superan el 30 % o el p95 acumulado supera los 10 s. Se recomienda ejecutarlo fuera del horario de operación de la garita.
+* **Resultados:** Los reportes generados se consolidan en la carpeta `tests/carga/resultados/` (`resumen.*` o `resumen-escalonada.*`) y se almacenan como artefacto con retención de 14 días.
 
 ### 4.4. Escaneo de Seguridad OWASP ZAP (`seguridad-zap.yml`)
 * **Herramienta:** Ejecuta **OWASP ZAP Baseline Scan** (`zaproxy/action-baseline`) mediante ejecución manual (`workflow_dispatch`).
