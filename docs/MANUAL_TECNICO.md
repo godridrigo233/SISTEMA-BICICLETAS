@@ -136,6 +136,7 @@ Por razones estrictas de seguridad, **nunca se versionan valores reales, contras
 * `K6_BASE_URL`: URL base de la API REST para las pruebas de carga con k6.
 * `K6_CORREO`, `K6_PASSWORD`, `K6_CODIGO_QR`: Credenciales y parámetros para las pruebas de carga.
 * `K6_PERMITIR_ESCRITURA`: Bandera que habilita pruebas con mutación de datos en k6.
+* `K6_CORREO_ESTUDIANTE`, `K6_PASSWORD_ESTUDIANTE`: Cuenta de prueba con rol Estudiante para la prueba de carga del portal del estudiante.
 * `ZAP_URL_SPA`, `ZAP_URL_API`: URLs objetivo opcionales para los escaneos de seguridad con OWASP ZAP.
 * `SUPABASE_DB_URL`: Cadena de conexión para la ejecución del respaldo diario en Supabase.
 * `BACKUP_PASSPHRASE`: Frase de paso para el cifrado simétrico AES-256 de los respaldos lógicos.
@@ -221,7 +222,8 @@ Se activa ante cualquier evento de `push` a cualquier rama, en solicitudes de ex
   * `http_req_failed{escenario:consulta}`: Tasa de fallos menor al 1 % (`rate < 0.01`).
   * Al menos una solicitud ejecutada en el escenario (`http_reqs{escenario:consulta}`: `count > 0`), lo que impide aprobar el ensayo sin tráfico real.
 * **Modo escalonado (`modo = escalonada`):** Determina la capacidad máxima del sistema. Sube los VUs por niveles (`niveles`, por defecto 10, 25, 50, 100 y 150), con una rampa de 60 s y una meseta medida de 120 s por nivel (≈ 16 min en total). Para cada nivel reporta solicitudes, solicitudes por segundo, media, p95, máximo y tasa de error, y concluye cuál es el mayor nivel que, junto con los anteriores, mantiene p95 < 2000 ms y errores < 1 %. Es siempre de solo lectura, cuenta como error toda solicitud que supere 10 s y se detiene sola si los errores superan el 30 % o el p95 acumulado supera los 10 s. Se recomienda ejecutarlo fuera del horario de operación de la garita.
-* **Resultados:** Los reportes generados se consolidan en la carpeta `tests/carga/resultados/` (`resumen.*` o `resumen-escalonada.*`) y se almacenan como artefacto con retención de 14 días.
+* **Perfil estudiante (`perfil = estudiante`):** Ejecuta `tests/carga/estudiante-carga.js`. Cada usuario virtual simula a un estudiante que abre el portal en bucle: inicio de sesión (verificación BCrypt, la operación más costosa), perfil con sus bicicletas y su código QR, e historial, con 1 s de pausa. Es de solo lectura y admite los modos `carga` (10 VUs, 2 min) y `escalonada` (por defecto 5, 10, 25 y 50 VUs). Requiere los secretos `K6_CORREO_ESTUDIANTE` y `K6_PASSWORD_ESTUDIANTE` de una cuenta de prueba con rol Estudiante y contraseña propia; la cuenta se verifica una sola vez antes de empezar, para no acumular intentos fallidos. El RNF-01 se refiere a la garita; para el estudiante se usa el mismo límite de 2 s como referencia.
+* **Resultados:** Los reportes generados se consolidan en la carpeta `tests/carga/resultados/` (`resumen.*`, `resumen-escalonada.*`, `resumen-estudiante.*` o `resumen-escalonada-estudiante.*`) y se almacenan como artefacto con retención de 14 días.
 
 ### 4.4. Escaneo de Seguridad OWASP ZAP (`seguridad-zap.yml`)
 * **Herramienta:** Ejecuta **OWASP ZAP Baseline Scan** (`zaproxy/action-baseline`) mediante ejecución manual (`workflow_dispatch`).
