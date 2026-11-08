@@ -65,6 +65,8 @@ builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationSc
         };
     });
 builder.Services.AddPoliticasRbac();
+// CC-13: como máximo 2 verificaciones BCrypt simultáneas para que el inicio de sesión no bloquee a la garita (RNF-01).
+builder.Services.AddLimiteInicioSesion(builder.Configuration);
 
 // CORS restringido al dominio del frontend en Vercel (OWASP A05): nunca "*".
 // Cors__OrigenPermitido admite varios orígenes separados por coma (p. ej., producción y vista previa).
@@ -104,6 +106,7 @@ app.Use(async (contexto, siguiente) =>
 app.UseExceptionHandler();
 
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

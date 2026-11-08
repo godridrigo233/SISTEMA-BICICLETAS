@@ -239,10 +239,11 @@ ${pie}
   const capNav = capacidad(nav);
   const capLogin = capacidad(ini);
   const capGarita = capacidad(ini.map((x) => ({ valor: x.valor, cumple: x.alcanzado && x.garitaCumple })));
+  const noAlcanzada = 'no alcanzada (la prueba se detuvo antes)';
   const conclusiones = [
-    `Navegación: ${capNav ? `hasta ${capNav} estudiantes con sesión abierta cumplen la referencia de 2 s (perfil, historial y garita)` : 'ningún nivel cumple la referencia de 2 s'}.`,
-    `Inicios de sesión: ${capLogin ? `hasta ${capLogin} por minuto con p95 < 2 s y error < 1 %` : `incluso ${INICIOS_MIN[0]} por minuto superan la referencia de 2 s`}.`,
-    `Garita (RNF-01) durante los inicios de sesión: ${capGarita ? `cumple hasta ${capGarita} inicios de sesión por minuto` : `se incumple ya con ${INICIOS_MIN[0]} inicios de sesión por minuto`}.`,
+    `Navegación: ${!nav[0].alcanzado ? noAlcanzada : capNav ? `hasta ${capNav} estudiantes con sesión abierta cumplen la referencia de 2 s (perfil, historial y garita)` : 'ningún nivel cumple la referencia de 2 s'}.`,
+    `Inicios de sesión: ${!ini[0].alcanzado ? noAlcanzada : capLogin ? `hasta ${capLogin} por minuto con p95 < 2 s y error < 1 %` : `incluso ${INICIOS_MIN[0]} por minuto superan la referencia de 2 s`}.`,
+    `Garita (RNF-01) durante los inicios de sesión: ${!ini[0].alcanzado ? noAlcanzada : capGarita ? `cumple hasta ${capGarita} inicios de sesión por minuto` : `se incumple ya con ${INICIOS_MIN[0]} inicios de sesión por minuto`}.`,
   ];
 
   const md = `# Prueba de Carga Escalonada — Portal del Estudiante y efecto en la Garita (k6)
