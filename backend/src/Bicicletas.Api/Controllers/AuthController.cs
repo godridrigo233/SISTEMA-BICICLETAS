@@ -2,6 +2,7 @@ using Bicicletas.Api.Seguridad;
 using Bicicletas.Application.Autenticacion;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Bicicletas.Api.Controllers;
 
@@ -13,8 +14,10 @@ public sealed class AuthController(AutenticacionService autenticacion) : Control
     /// <response code="200">Credenciales válidas: JWT de 30 minutos con el claim id_rol.</response>
     /// <response code="401">Correo o contraseña incorrectos (mensaje genérico).</response>
     /// <response code="403">Cuenta inactiva.</response>
+    /// <response code="429">Demasiados inicios de sesión simultáneos (CC-13): reintentar en unos segundos.</response>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(LimiteInicioSesion.Politica)]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest solicitud, CancellationToken ct) =>
         Ok(await autenticacion.IniciarSesionAsync(solicitud, ct));
 
@@ -33,6 +36,7 @@ public sealed class AuthController(AutenticacionService autenticacion) : Control
     /// <response code="422">Contraseña actual incorrecta o nueva contraseña fuera de la política.</response>
     [HttpPost("cambiar-password")]
     [Authorize]
+    [EnableRateLimiting(LimiteInicioSesion.Politica)]
     public async Task<ActionResult<LoginResponse>> CambiarPassword(CambiarPasswordRequest solicitud, CancellationToken ct)
     {
         Guid idUsuario = Guid.Parse(User.FindFirst(ClaimsSistema.IdUsuario)!.Value);

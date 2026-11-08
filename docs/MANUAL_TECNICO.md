@@ -116,6 +116,7 @@ Por razones estrictas de seguridad, **nunca se versionan valores reales, contras
 * `Jwt__MinutosVigencia`: Duración en minutos de la vigencia del token (por defecto: 30 minutos).
 * `Cors__OrigenPermitido`: Lista de orígenes web autorizados para interactuar con la API mediante CORS, separados por comas.
 * `Biometria__UmbralTheta`: Valor numérico del umbral de decisión euclidiana $\theta$ (por defecto: `0.37`).
+* `Seguridad__InicioSesion__Concurrencia` y `Seguridad__InicioSesion__Cola` (opcionales; por defecto `2` y `4`): máximo de inicios de sesión que se verifican a la vez con BCrypt y tamaño de la fila de espera (CC-13). El exceso recibe `429` con el mensaje «Hay muchos inicios de sesión en este momento…» y la cabecera `Retry-After: 5`, para que el inicio de sesión no deje sin hilos de trabajo a la consulta por QR de la garita (RNF-01).
   > [!WARNING]
   > No debe modificarse: el valor 0.37 fue calibrado con el Dataset Primario Local UCSM (Fase A) con la librería @vladmandic/face-api 1.7.15, el detector SSD MobileNetV1 y los modelos de `frontend/public/models`. Alterar el umbral, la librería, el detector o los modelos invalida la calibración.
 * `Investigacion__FaseBHabilitada`: Booleano (`true`/`false`) que habilita el registro de telemetría experimental para la Fase B de investigación.

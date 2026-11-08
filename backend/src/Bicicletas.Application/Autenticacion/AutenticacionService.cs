@@ -29,6 +29,8 @@ public sealed class AutenticacionService(
             throw new CuentaBloqueadaException(bloqueo.Value);
 
         Usuario? usuario = await usuarios.ObtenerPorCorreoAsync(correo, ct);
+        // CC-13: si el cliente ya abandonó la solicitud (p. ej., tras esperar en la fila), no se gasta BCrypt.
+        ct.ThrowIfCancellationRequested();
         bool valida;
         if (usuario is null)
         {
