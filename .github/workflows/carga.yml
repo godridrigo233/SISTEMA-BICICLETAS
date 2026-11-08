@@ -12,7 +12,7 @@ on:
         type: string
         default: ''
       perfil:
-        description: 'garita = consulta por QR del vigilante (RNF-01); estudiante = inicio de sesión, perfil con QR e historial del portal del estudiante. Ambos son de solo lectura.'
+        description: 'garita = consulta por QR del vigilante (RNF-01); estudiante = sesiones de estudiante (navegación e inicios de sesión) con una sonda de garita para medir su efecto en el RNF-01. Ambos son de solo lectura.'
         required: false
         type: choice
         options:
@@ -28,7 +28,7 @@ on:
           - escalonada
         default: carga
       niveles:
-        description: 'Solo modo escalonada: niveles de VUs separados por comas (vacío = 10,25,50,100,150 en garita y 5,10,25,50 en estudiante).'
+        description: 'Solo modo escalonada: niveles de VUs separados por comas (vacío = 10,25,50,100,150 en garita y 10,25,50 sesiones en estudiante).'
         required: false
         type: string
         default: ''
