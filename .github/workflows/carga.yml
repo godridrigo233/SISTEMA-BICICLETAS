@@ -11,6 +11,14 @@ on:
         required: false
         type: string
         default: ''
+      perfil:
+        description: 'garita = consulta por QR del vigilante (RNF-01); estudiante = inicio de sesión, perfil con QR e historial del portal del estudiante. Ambos son de solo lectura.'
+        required: false
+        type: choice
+        options:
+          - garita
+          - estudiante
+        default: garita
       modo:
         description: 'carga = 10 VUs durante 2 min (RNF-01); escalonada = sube los VUs por niveles para hallar la capacidad máxima (siempre de solo lectura, ~16 min).'
         required: false
@@ -20,10 +28,10 @@ on:
           - escalonada
         default: carga
       niveles:
-        description: 'Solo modo escalonada: niveles de VUs separados por comas.'
+        description: 'Solo modo escalonada: niveles de VUs separados por comas (vacío = 10,25,50,100,150 en garita y 5,10,25,50 en estudiante).'
         required: false
         type: string
-        default: '10,25,50,100,150'
+        default: ''
       permitir_escritura:
         description: 'Permitir operaciones de escritura (true/false). PRECAUCIÓN: true solo debe usarse contra base de datos de prueba, nunca contra el piloto.'
         required: false
@@ -39,7 +47,7 @@ concurrency:
 
 jobs:
   carga:
-    name: Prueba de Carga RNF-01 (${{ inputs.modo == 'escalonada' && 'escalonada' || '10 VUs - 2m' }})
+    name: Prueba de Carga RNF-01 (${{ inputs.perfil || 'garita' }} - ${{ inputs.modo == 'escalonada' && 'escalonada' || '10 VUs - 2m' }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -57,10 +65,13 @@ jobs:
           K6_CODIGO_QR: ${{ secrets.K6_CODIGO_QR || vars.K6_CODIGO_QR }}
           K6_PERMITIR_ESCRITURA: ${{ inputs.permitir_escritura }}
           K6_MODO: ${{ inputs.modo || 'carga' }}
-          K6_NIVELES: ${{ inputs.niveles || '10,25,50,100,150' }}
+          K6_NIVELES: ${{ inputs.niveles }}
+          K6_CORREO_ESTUDIANTE: ${{ secrets.K6_CORREO_ESTUDIANTE }}
+          K6_PASSWORD_ESTUDIANTE: ${{ secrets.K6_PASSWORD_ESTUDIANTE }}
+          SCRIPT_K6: ${{ inputs.perfil == 'estudiante' && 'tests/carga/estudiante-carga.js' || 'tests/carga/rnf01-carga.js' }}
         run: |
           mkdir -p tests/carga/resultados
-          k6 run tests/carga/rnf01-carga.js
+          k6 run "$SCRIPT_K6"
 
       - name: Publicar resumen de prueba de carga
         if: always()
