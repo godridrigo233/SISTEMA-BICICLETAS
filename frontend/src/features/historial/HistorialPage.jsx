@@ -6,10 +6,8 @@ import {
   Bike,
   Calendar,
   CheckCircle,
-  Download,
   Filter,
   History,
-  QrCode,
   RotateCcw,
   Search,
   X,
@@ -19,7 +17,6 @@ import Paginador from '../../componentes/Paginador';
 import { fechaPeru } from '../../componentes/formato';
 import { mensajeDeError } from '../../services/apiClient';
 import { consultarHistorial, obtenerPerfil } from '../../services/estudianteService';
-import { descargarSticker, nombreAbreviado, qrComoDataUrl } from '../enrolamiento/sticker';
 
 const VACIO = { tipo: '', desde: '', hasta: '' };
 const ETIQUETA = { EXITOSO: '✓ Exitoso', DENEGADO: '✗ Denegado', MANUAL: '✓ Manual' };
@@ -32,7 +29,6 @@ export default function HistorialPage() {
   const [pagina, setPagina] = useState(null);
   const [error, setError] = useState('');
   const [perfil, setPerfil] = useState(null);
-  const [qr, setQr] = useState(null);
 
   const cargar = useCallback(async () => {
     setError('');
@@ -47,7 +43,7 @@ export default function HistorialPage() {
   useEffect(() => { obtenerPerfil().then(setPerfil).catch(() => setPerfil(null)); }, []);
 
   const rangoInvalido = filtros.desde && filtros.hasta && filtros.desde > filtros.hasta;
-  const bici = perfil?.bicicletas?.[0];
+  const bicicletas = perfil?.bicicletas ?? [];
   const cambiar = (campo) => (e) => setFiltros((f) => ({ ...f, [campo]: e.target.value }));
 
   function aplicar(evento) {
@@ -57,10 +53,6 @@ export default function HistorialPage() {
     setAplicados(filtros);
   }
 
-  async function verQr() {
-    setQr(await qrComoDataUrl(bici.codigoQr));
-  }
-
   return (
     <main className="contenido garita">
       {/* Cabecera institucional */}
@@ -68,37 +60,41 @@ export default function HistorialPage() {
         <div>
           <h1>Mi historial de movimientos</h1>
           <p className="ayuda" style={{ marginTop: -8 }}>
-            Registro cronológico auditable de accesos y retiros de su bicicleta registrada
+            Registro cronológico auditable de accesos y retiros de tus bicicletas registradas
           </p>
         </div>
-        {bici && (
-          <button type="button" className="boton boton-primario" onClick={verQr}>
-            <QrCode size={18} aria-hidden="true" />
-            Ver mi QR
-          </button>
-        )}
       </div>
 
-      {perfil && !bici && (
+      {perfil && bicicletas.length === 0 && (
         <p className="aviso">
           <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
           <span>Aún no registras una bicicleta. Ve a «Mi registro» para obtener tu QR.</span>
         </p>
       )}
 
-      {bici && (
-        <div className="ficha" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Bike size={22} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
-            <p className="ayuda" style={{ margin: 0, fontSize: '0.95rem', color: 'var(--gris-800)' }}>
-              Bicicleta: <strong>{bici.marcaModelo}</strong> ({bici.color}) · Estado actual: <strong>{bici.estado}</strong>
-            </p>
-          </div>
-          <span className={`etiqueta ${bici.estado === 'DENTRO' ? 'badge-dentro' : 'badge-fuera'}`}>
-            {bici.estado === 'DENTRO' ? <ArrowDownLeft size={14} aria-hidden="true" /> : <ArrowUpRight size={14} />}
-            {bici.estado}
-          </span>
-        </div>
+      {/* Estado de cada bicicleta propia; los stickers se descargan en «Mi registro». */}
+      {bicicletas.length > 0 && (
+        <section className="ficha" aria-label="Mis bicicletas" style={{ padding: '14px 20px' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }}>
+            {bicicletas.map((b) => (
+              <li key={b.codigoQr} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Bike size={22} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
+                  <p className="ayuda" style={{ margin: 0, fontSize: '0.95rem', color: 'var(--gris-800)' }}>
+                    Bicicleta: <strong>{b.marcaModelo}</strong> ({b.color})
+                  </p>
+                </div>
+                <span className={`etiqueta ${b.estado === 'DENTRO' ? 'badge-dentro' : 'badge-fuera'}`}>
+                  {b.estado === 'DENTRO' ? <ArrowDownLeft size={14} aria-hidden="true" /> : <ArrowUpRight size={14} aria-hidden="true" />}
+                  {b.estado}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="ayuda" style={{ margin: '10px 0 0' }}>
+            Tus stickers QR están en <a href="/estudiante/registro">Mi registro</a>.
+          </p>
+        </section>
       )}
 
       {/* Barra de Filtros */}
@@ -196,34 +192,6 @@ export default function HistorialPage() {
 
       <Paginador pagina={pagina} alCambiar={setNumero} />
 
-      {/* Modal para ver y descargar QR */}
-      {qr && (
-        <div className="modal-fondo">
-          <section className="ficha modal" role="dialog" aria-modal="true" aria-labelledby="titulo-qr" style={{ padding: 24, textAlign: 'center' }}>
-            <h2 id="titulo-qr" style={{ justifyContent: 'center' }}>
-              <QrCode size={22} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
-              Mi código QR
-            </h2>
-            <div style={{ background: '#ffffff', padding: 12, display: 'inline-block', borderRadius: 8, border: '1px solid var(--gris-200)', margin: '8px 0' }}>
-              <img src={qr} alt="Código QR de mi bicicleta" width="220" height="220" style={{ display: 'block' }} />
-            </div>
-            <p className="ayuda">Muéstralo en garita si el sticker está dañado.</p>
-            <div className="con-boton" style={{ justifyContent: 'center', marginTop: 16 }}>
-              <button
-                type="button"
-                className="boton boton-primario"
-                onClick={() => descargarSticker(bici.codigoQr, nombreAbreviado(perfil.nombres, perfil.apellidos))}
-              >
-                <Download size={18} aria-hidden="true" />
-                Descargar sticker QR
-              </button>
-              <button type="button" className="boton" onClick={() => setQr(null)}>
-                Cerrar
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
     </main>
   );
 }
