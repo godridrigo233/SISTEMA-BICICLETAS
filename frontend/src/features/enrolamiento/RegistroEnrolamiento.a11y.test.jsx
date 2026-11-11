@@ -59,3 +59,17 @@ describe('W4 · Registro y Enrolamiento (Accesibilidad)', () => {
     expect(resultados).toHaveNoViolations();
   });
 });
+
+describe('W4 · Mi registro con bicicleta (Accesibilidad)', () => {
+  it('no presenta violaciones de accesibilidad con la lista de bicicletas', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue({
+      ...perfilEjemplo,
+      enrolado: true,
+      bicicletas: [{ idBicicleta: 'b-1', codigoQr: '11111111-2222-3333-4444-555555555555', numeroMarco: 'WTU123', marcaModelo: 'Trek', color: 'Rojo', rasgosDistintivos: null, estado: 'DENTRO' }],
+    });
+    const { container } = render(<RegistroEnrolamiento />);
+    await screen.findByRole('heading', { name: 'Mi registro' });
+    const resultados = await axe(container);
+    expect(resultados).toHaveNoViolations();
+  });
+});

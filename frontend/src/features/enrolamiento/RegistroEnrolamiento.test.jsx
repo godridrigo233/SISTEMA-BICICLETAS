@@ -136,3 +136,95 @@ describe('W4 · Luz de pantalla durante la captura', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
+
+describe('W4 · Estudiante con bicicleta registrada', () => {
+  const biciRegistrada = { idBicicleta: 'b-1', codigoQr: '11111111-2222-3333-4444-555555555555', numeroMarco: 'WTU123', marcaModelo: 'Trek', color: 'Rojo', rasgosDistintivos: null, estado: 'FUERA' };
+  const otra = { idBicicleta: 'b-2', codigoQr: '66666666-7777-8888-9999-000000000000', numeroMarco: 'GT999', marcaModelo: 'GT Avalanche', color: 'Azul', rasgosDistintivos: null, estado: 'FUERA' };
+  const enrolado = { ...perfil, enrolado: true, bicicletas: [biciRegistrada] };
+
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: vi.fn() }] }) },
+    });
+    vi.mocked(capturarParaEnrolamiento).mockResolvedValue(new Array(128).fill(0.2));
+  });
+  afterEach(() => vi.clearAllMocks());
+
+  it('si ya está enrolado, lista sus bicicletas y no muestra la cámara ni el consentimiento', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(enrolado);
+    render(<RegistroEnrolamiento />);
+    expect(await screen.findByRole('heading', { name: 'Mi registro' })).toBeInTheDocument();
+    expect(screen.getByText(/Tu rostro ya está enrolado/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Descargar sticker de Trek (Rojo)' })).toBeInTheDocument();
+    expect(screen.getByText('Fuera')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Actualizar mi enrolamiento' })).toBeEnabled();
+    expect(navigator.mediaDevices.getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it('registra otra bicicleta sin volver a enrolar y muestra su sticker', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValueOnce(enrolado).mockResolvedValue({ ...enrolado, bicicletas: [biciRegistrada, otra] });
+    vi.mocked(registrarBicicleta).mockResolvedValue(otra);
+    const usuario = userEvent.setup();
+    render(<RegistroEnrolamiento />);
+    await usuario.click(await screen.findByRole('button', { name: 'Registrar otra bicicleta' }));
+    const registrar = screen.getByRole('button', { name: 'Registrar bicicleta' });
+    expect(registrar).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Actualizar mi enrolamiento' })).toBeDisabled();
+
+    await usuario.type(screen.getByLabelText(/Número de marco/), 'GT999');
+    await usuario.type(screen.getByLabelText(/Marca y modelo/), 'GT Avalanche');
+    await usuario.selectOptions(screen.getByLabelText(/Color/), 'Azul');
+    await usuario.click(registrar);
+
+    expect(await screen.findByText('Bicicleta registrada. Quedó en estado FUERA.')).toBeInTheDocument();
+    expect(registrarBicicleta).toHaveBeenCalledWith(expect.objectContaining({ numeroMarco: 'GT999', color: 'Azul', rasgosDistintivos: null }));
+    expect(enrolar).not.toHaveBeenCalled();
+    expect(screen.getByText(otra.codigoQr)).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: 'Volver a Mi registro' }));
+    expect(await screen.findByRole('button', { name: 'Descargar sticker de GT Avalanche (Azul)' })).toBeInTheDocument();
+  });
+
+  it('cancelar el registro de otra bicicleta limpia el formulario', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(enrolado);
+    const usuario = userEvent.setup();
+    render(<RegistroEnrolamiento />);
+    await usuario.click(await screen.findByRole('button', { name: 'Registrar otra bicicleta' }));
+    await usuario.type(screen.getByLabelText(/Número de marco/), 'X1');
+    await usuario.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByLabelText(/Número de marco/)).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Registrar otra bicicleta' }));
+    expect(screen.getByLabelText(/Número de marco/)).toHaveValue('');
+    expect(registrarBicicleta).not.toHaveBeenCalled();
+  });
+
+  it('actualiza el enrolamiento solo al pedirlo, con consentimiento y captura', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue(enrolado);
+    const usuario = userEvent.setup();
+    render(<RegistroEnrolamiento />);
+    await usuario.click(await screen.findByRole('button', { name: 'Actualizar mi enrolamiento' }));
+    const guardar = screen.getByRole('button', { name: 'Guardar enrolamiento' });
+    expect(guardar).toBeDisabled();
+
+    await usuario.click(screen.getByRole('checkbox'));
+    await usuario.click(await screen.findByRole('button', { name: 'Capturar rostro' }));
+    await screen.findByText(/Rostro capturado correctamente/);
+    await usuario.click(guardar);
+
+    expect(await screen.findByText('Tu enrolamiento facial se guardó correctamente.')).toBeInTheDocument();
+    expect(vi.mocked(enrolar).mock.calls[0][0]).toHaveLength(128);
+    expect(registrarBicicleta).not.toHaveBeenCalled();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('si tiene bicicleta pero falta el enrolamiento, muestra la captura directamente', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue({ ...enrolado, enrolado: false });
+    render(<RegistroEnrolamiento />);
+    expect(await screen.findByText(/Falta tu enrolamiento facial/)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Actualizar mi enrolamiento' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+  });
+});

@@ -21,6 +21,7 @@ import { enrolar, obtenerPerfil, registrarBicicleta } from '../../services/estud
 import { descargarSticker, nombreAbreviado, qrComoDataUrl } from './sticker';
 
 const COLORES = ['Negro', 'Blanco', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Gris', 'Naranja', 'Otro'];
+const BICI_VACIA = { numeroMarco: '', marcaModelo: '', color: '', rasgosDistintivos: '' };
 
 /** W4 · Registro de bicicleta y enrolamiento facial (CU-01). Stepper visual decorativo. */
 export default function RegistroEnrolamiento() {
@@ -29,7 +30,7 @@ export default function RegistroEnrolamiento() {
   const faceapi = useRef(null);
   const [perfil, setPerfil] = useState(null);
   const [error, setError] = useState('');
-  const [bici, setBici] = useState({ numeroMarco: '', marcaModelo: '', color: '', rasgosDistintivos: '' });
+  const [bici, setBici] = useState(BICI_VACIA);
   const [consentimiento, setConsentimiento] = useState(false);
   const [camara, setCamara] = useState('espera');
   const [descriptor, setDescriptor] = useState(null);
@@ -38,6 +39,9 @@ export default function RegistroEnrolamiento() {
   const [qr, setQr] = useState('');
   const [capturando, setCapturando] = useState(false);
   const [estadoCaptura, setEstadoCaptura] = useState(null);
+  // Con bicicletas ya registradas: una sola acción a la vez (Nielsen H8: la cámara no se muestra si no se necesita).
+  const [accion, setAccion] = useState(null); // null | 'otra-bici' | 'rostro'
+  const [exito, setExito] = useState('');
   const busqueda = useRef(null);
   const ajusteExposicion = useRef(null);
 
@@ -76,7 +80,8 @@ export default function RegistroEnrolamiento() {
   }, [consentimiento, registrada]);
 
   const necesitaBici = perfil && perfil.bicicletas.length === 0;
-  const biciValida = !necesitaBici || (bici.numeroMarco.trim() && bici.marcaModelo.trim() && bici.color);
+  const datosBiciCompletos = Boolean(bici.numeroMarco.trim() && bici.marcaModelo.trim() && bici.color);
+  const biciValida = !necesitaBici || datosBiciCompletos;
   const puedeEnviar = biciValida && consentimiento && descriptor && !enviando;
   // Nielsen H1 y H5: lista visible de lo que falta para completar el registro.
   const requisitos = [
@@ -120,17 +125,71 @@ export default function RegistroEnrolamiento() {
     setEnviando(true);
     setError('');
     try {
-      const bicicleta = necesitaBici ? await registrarBicicleta({ ...bici, rasgosDistintivos: bici.rasgosDistintivos.trim() || null }) : perfil.bicicletas[0];
-      await enrolar(descriptor);
-      setDescriptor(null); // el vector ya no se conserva en el navegador
-      setRegistrada(bicicleta);
-      setQr(await qrComoDataUrl(bicicleta.codigoQr));
+      if (necesitaBici) {
+        const bicicleta = await registrarBicicleta(datosBici());
+        await enrolar(descriptor);
+        setDescriptor(null); // el vector ya no se conserva en el navegador
+        setConsentimiento(false);
+        setExito('Registro completado. Tu bicicleta quedó en estado FUERA.');
+        setRegistrada(bicicleta);
+        setQr(await qrComoDataUrl(bicicleta.codigoQr));
+      } else {
+        await enrolar(descriptor);
+        setDescriptor(null);
+        setConsentimiento(false);
+        setAccion(null);
+        setExito('Tu enrolamiento facial se guardó correctamente.');
+      }
       setPerfil(await obtenerPerfil());
     } catch (e) {
       setError(mensajeDeError(e, 'No se pudo completar el registro.'));
     } finally {
       setEnviando(false);
     }
+  }
+
+  const datosBici = () => ({ ...bici, rasgosDistintivos: bici.rasgosDistintivos.trim() || null });
+
+  // Registro de una bicicleta adicional: el enrolamiento es del estudiante y sirve para todas sus bicicletas.
+  async function registrarOtra(evento) {
+    evento.preventDefault();
+    if (!datosBiciCompletos || enviando) return;
+    setEnviando(true);
+    setError('');
+    try {
+      const bicicleta = await registrarBicicleta(datosBici());
+      setBici(BICI_VACIA);
+      setAccion(null);
+      setExito('Bicicleta registrada. Quedó en estado FUERA.');
+      setRegistrada(bicicleta);
+      setQr(await qrComoDataUrl(bicicleta.codigoQr));
+      setPerfil(await obtenerPerfil());
+    } catch (e) {
+      setError(mensajeDeError(e, 'No se pudo registrar la bicicleta.'));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  function abrir(nueva) {
+    setAccion(nueva);
+    setExito('');
+    setError('');
+  }
+
+  function cancelar() {
+    busqueda.current?.abort();
+    setAccion(null);
+    setConsentimiento(false);
+    setDescriptor(null);
+    setBici(BICI_VACIA);
+    setError('');
+  }
+
+  function volver() {
+    setRegistrada(null);
+    setQr('');
+    setExito('');
   }
 
   if (!perfil) {
@@ -167,7 +226,7 @@ export default function RegistroEnrolamiento() {
         <h1>Registro y Enrolamiento</h1>
         <p className="exito" role="status">
           <CheckCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
-          <span>Registro completado. Tu bicicleta quedó en estado FUERA.</span>
+          <span>{exito}</span>
         </p>
 
         <section className="ficha" style={{ textAlign: 'center', padding: '32px 24px', borderTop: '4px solid var(--verde-ucsm)' }}>
@@ -196,13 +255,254 @@ export default function RegistroEnrolamiento() {
             Imprime y pega este sticker en el tubo superior o diagonal de tu bicicleta para el ingreso rápido en garita.
           </p>
         </section>
+        <button type="button" className="boton" onClick={volver} style={{ alignSelf: 'flex-start' }}>
+          Volver a Mi registro
+        </button>
       </main>
     );
   }
 
   const cambiar = (campo) => (e) => setBici((b) => ({ ...b, [campo]: e.target.value }));
 
-  // Formulario de Registro y Enrolamiento
+  const datosPersonales = (
+    <section className="ficha" aria-label="Mis datos" style={{ borderLeft: '4px solid var(--verde-ucsm)' }}>
+      <h2>
+        <User size={20} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
+        Mis datos (padrón institucional)
+      </h2>
+      <dl>
+        <dt>Nombres</dt><dd>{perfil.nombres}</dd>
+        <dt>Apellidos</dt><dd>{perfil.apellidos}</dd>
+        <dt>Código universitario</dt><dd><span className="codigo" style={{ padding: '1px 6px', borderRadius: 4, fontSize: '0.9rem' }}>{perfil.codigoUniversitario}</span></dd>
+        <dt>Facultad</dt><dd>{perfil.facultad}</dd>
+      </dl>
+    </section>
+  );
+
+  const camposBici = (
+    <>
+      <div className="campo">
+        <label htmlFor="marco">Número de marco (serie del chasis) *</label>
+        <input id="marco" maxLength={40} value={bici.numeroMarco} onChange={cambiar('numeroMarco')} placeholder="Grabado bajo la caja del pedalier o tubo frontal" />
+      </div>
+      <div className="campo">
+        <label htmlFor="marca">Marca y modelo *</label>
+        <input id="marca" maxLength={50} value={bici.marcaModelo} onChange={cambiar('marcaModelo')} placeholder="Ej. Trek Marlin 5, Specialized Rockhopper" />
+      </div>
+      <div className="campo">
+        <label htmlFor="color">Color *</label>
+        <select id="color" className="selector" value={bici.color} onChange={cambiar('color')}>
+          <option value="">Seleccione…</option>
+          {COLORES.map((c) => <option key={c}>{c}</option>)}
+        </select>
+      </div>
+      <div className="campo">
+        <label htmlFor="rasgos">Características distintivas</label>
+        <input id="rasgos" maxLength={100} value={bici.rasgosDistintivos} onChange={cambiar('rasgosDistintivos')} placeholder="Ej. parrilla trasera, luz delantera negra, timbre azul" />
+        <p className="ayuda">{bici.rasgosDistintivos.length} / 100 caracteres</p>
+      </div>
+    </>
+  );
+
+  const bloqueCaptura = (
+    <>
+      <div style={{ background: 'var(--gris-50)', padding: 16, borderRadius: 8, border: '1px solid var(--gris-200)', marginBottom: 16 }}>
+        <label className="con-boton" style={{ cursor: 'pointer', alignItems: 'flex-start' }}>
+          <input
+            type="checkbox"
+            checked={consentimiento}
+            onChange={(e) => setConsentimiento(e.target.checked)}
+            style={{ marginTop: 4, width: 20, height: 20 }}
+          />
+          <span style={{ fontSize: '0.95rem', lineHeight: 1.45 }}>
+            Autorizo el tratamiento de mi descriptor biométrico facial con la única finalidad de verificar mi identidad al retirar mi bicicleta. No se almacenan fotografías.
+          </span>
+        </label>
+      </div>
+
+      {consentimiento && (
+        // «Luz de pantalla»: durante la captura, la pantalla se pone en blanco alrededor del video para
+        // iluminar el rostro de quien la mira (la web no puede subir el brillo del dispositivo).
+        <div className={`camara${capturando ? ' modo-luz' : ''}`} style={{ marginTop: 16 }}>
+          <div className="camara-marco">
+            <video ref={video} autoPlay muted playsInline aria-label="Visor de cámara en vivo" />
+            <div className="camara-guia-ovalo" aria-hidden="true" />
+          </div>
+
+          {camara === 'cargando' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
+              <RefreshCw size={16} className="girando" aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
+              <p role="status" style={{ margin: 0, fontWeight: 600 }}>Preparando el reconocimiento facial (más lento solo la primera vez)…</p>
+            </div>
+          )}
+
+          {camara === 'sin-camara' && (
+            <p className="alerta" role="alert">
+              <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+              <span>No se detecta una cámara. Conecte o habilite la cámara e intente nuevamente.</span>
+            </p>
+          )}
+
+          <p className="ayuda" style={{ textAlign: 'center' }}>
+            Un único rostro, centrado, con buena iluminación, sin lentes ni mascarilla.
+          </p>
+
+          <button
+            type="button"
+            className="boton"
+            onClick={capturar}
+            disabled={camara !== 'activa' || capturando}
+            style={{ marginTop: 8 }}
+          >
+            <Camera size={18} aria-hidden="true" />
+            {capturando ? 'Capturando…' : 'Capturar rostro'}
+          </button>
+          {capturando && (
+            <button type="button" className="boton" onClick={() => busqueda.current?.abort()} style={{ marginTop: 8 }}>
+              Cancelar captura
+            </button>
+          )}
+
+          <p role="status" aria-live="polite" style={{ fontWeight: 600, color: descriptor ? 'var(--verde-ucsm)' : 'var(--gris-600)', marginTop: 8 }}>
+            {capturando
+              ? `Captura ${estadoCaptura?.captura ?? 1} de 2: ${estadoCaptura?.mensaje ?? 'Ubique su rostro frente a la cámara.'}`
+              : descriptor
+                ? '✓ Rostro capturado correctamente. Si desea, puede volver a capturarlo.'
+                : 'Aún no ha capturado su rostro. Al pulsar «Capturar rostro», mire de frente a la cámara y quédese quieto: la captura es automática.'}
+          </p>
+        </div>
+      )}
+    </>
+  );
+
+  const alertaError = error && (
+    <p className="alerta" role="alert">
+      <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+      <span>{error}</span>
+    </p>
+  );
+
+  const listaRequisitos = !puedeEnviar && !enviando && (
+    <ul className="requisitos" aria-label="Pendiente para completar el registro">
+      {requisitos.map(([texto, listo]) => (
+        <li key={texto} className={listo ? 'listo' : ''}>
+          {listo ? <CheckCircle2 size={16} aria-hidden="true" /> : <span className="pendiente" aria-hidden="true" />}
+          {texto}
+          <span className="sr-only">{listo ? ' (completo)' : ' (pendiente)'}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
+  // Estudiante con bicicletas registradas: lista de bicicletas con su sticker, registro de otra bicicleta y
+  // actualización opcional del enrolamiento. La cámara solo aparece si falta el enrolamiento o si se pide
+  // actualizarlo (Nielsen H1: estado visible; H8: diseño minimalista).
+  if (!necesitaBici) {
+    const mostrarCaptura = !perfil.enrolado || accion === 'rostro';
+    return (
+      <main className="contenido garita">
+        <h1>Mi registro</h1>
+        {exito && (
+          <p className="exito" role="status">
+            <CheckCircle size={20} aria-hidden="true" style={{ flexShrink: 0 }} />
+            <span>{exito}</span>
+          </p>
+        )}
+
+        {datosPersonales}
+
+        <section className="ficha" aria-label="Mis bicicletas" style={{ borderLeft: '4px solid #2b6cb0' }}>
+          <h2>
+            <Bike size={20} aria-hidden="true" style={{ color: '#2b6cb0' }} />
+            Mis bicicletas
+          </h2>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12 }}>
+            {perfil.bicicletas.map((b) => (
+              <li key={b.idBicicleta} className="con-boton" style={{ padding: 12, border: '1px solid var(--gris-200)', borderRadius: 8, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <strong>{b.marcaModelo}</strong> · {b.color}
+                  <p className="ayuda" style={{ margin: '4px 0 0' }}>
+                    Código: <span className="codigo" style={{ padding: '1px 6px', borderRadius: 4 }}>{b.codigoQr}</span>
+                  </p>
+                </div>
+                <span className={`etiqueta ${b.estado === 'DENTRO' ? 'badge-dentro' : 'badge-fuera'}`}>
+                  {b.estado === 'DENTRO' ? 'Dentro del campus' : 'Fuera'}
+                </span>
+                <button
+                  type="button"
+                  className="boton"
+                  onClick={() => descargarSticker(b.codigoQr, nombre)}
+                  aria-label={`Descargar sticker de ${b.marcaModelo} (${b.color})`}
+                >
+                  <Download size={18} aria-hidden="true" />
+                  Sticker
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {accion === 'otra-bici' ? (
+            <form onSubmit={registrarOtra} className="garita" aria-label="Registrar otra bicicleta" noValidate style={{ marginTop: 16 }}>
+              {camposBici}
+              {alertaError}
+              <div className="con-boton">
+                <button type="submit" className="boton boton-primario" disabled={!datosBiciCompletos || enviando}>
+                  <Bike size={18} aria-hidden="true" />
+                  {enviando ? 'Guardando…' : 'Registrar bicicleta'}
+                </button>
+                <button type="button" className="boton" onClick={cancelar}>Cancelar</button>
+              </div>
+            </form>
+          ) : (
+            <button type="button" className="boton" onClick={() => abrir('otra-bici')} disabled={accion !== null} style={{ marginTop: 16 }}>
+              <Bike size={18} aria-hidden="true" />
+              Registrar otra bicicleta
+            </button>
+          )}
+        </section>
+
+        <section className="ficha" aria-label="Enrolamiento facial" style={{ borderLeft: '4px solid var(--verde-ucsm)' }}>
+          <h2>
+            <ScanFace size={20} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
+            Enrolamiento facial
+          </h2>
+          {perfil.enrolado ? (
+            <p className="exito">
+              <CheckCircle2 size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+              <span>Tu rostro ya está enrolado. Se usa para verificar tu identidad al retirar cualquiera de tus bicicletas.</span>
+            </p>
+          ) : (
+            <p className="alerta" role="alert">
+              <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+              <span>Falta tu enrolamiento facial: sin él no podrás retirar tus bicicletas.</span>
+            </p>
+          )}
+
+          {mostrarCaptura ? (
+            <form onSubmit={completar} className="garita" aria-label="Enrolamiento facial" noValidate>
+              {bloqueCaptura}
+              {accion !== 'otra-bici' && alertaError}
+              <div className="con-boton">
+                <button type="submit" className="boton boton-primario" disabled={!puedeEnviar}>
+                  <ShieldCheck size={20} aria-hidden="true" />
+                  {enviando ? 'Guardando…' : 'Guardar enrolamiento'}
+                </button>
+                {perfil.enrolado && <button type="button" className="boton" onClick={cancelar}>Cancelar</button>}
+              </div>
+              {listaRequisitos}
+            </form>
+          ) : (
+            <button type="button" className="boton" onClick={() => abrir('rostro')} disabled={accion !== null}>
+              <RefreshCw size={18} aria-hidden="true" />
+              Actualizar mi enrolamiento
+            </button>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  // Primer registro: bicicleta + consentimiento + captura en un solo envío.
   return (
     <main className="contenido garita">
       {/* Indicador de progreso visual (Nielsen H1) */}
@@ -216,138 +516,25 @@ export default function RegistroEnrolamiento() {
       <h1>Registro de Bicicleta y Enrolamiento Facial</h1>
 
       <form onSubmit={completar} className="garita" noValidate>
-        {/* Paso 1: Padrón Institucional */}
-        <section className="ficha" aria-label="Mis datos" style={{ borderLeft: '4px solid var(--verde-ucsm)' }}>
+        {datosPersonales}
+
+        <section className="ficha" aria-label="Datos de la bicicleta" style={{ borderLeft: '4px solid #2b6cb0' }}>
           <h2>
-            <User size={20} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
-            Mis datos (padrón institucional)
+            <Bike size={20} aria-hidden="true" style={{ color: '#2b6cb0' }} />
+            Datos de la bicicleta
           </h2>
-          <dl>
-            <dt>Nombres</dt><dd>{perfil.nombres}</dd>
-            <dt>Apellidos</dt><dd>{perfil.apellidos}</dd>
-            <dt>Código universitario</dt><dd><span className="codigo" style={{ padding: '1px 6px', borderRadius: 4, fontSize: '0.9rem' }}>{perfil.codigoUniversitario}</span></dd>
-            <dt>Facultad</dt><dd>{perfil.facultad}</dd>
-          </dl>
+          {camposBici}
         </section>
 
-        {/* Paso 2: Datos de la Bicicleta */}
-        {necesitaBici ? (
-          <section className="ficha" aria-label="Datos de la bicicleta" style={{ borderLeft: '4px solid #2b6cb0' }}>
-            <h2>
-              <Bike size={20} aria-hidden="true" style={{ color: '#2b6cb0' }} />
-              Datos de la bicicleta
-            </h2>
-            <div className="campo">
-              <label htmlFor="marco">Número de marco (serie del chasis) *</label>
-              <input id="marco" maxLength={40} value={bici.numeroMarco} onChange={cambiar('numeroMarco')} placeholder="Grabado bajo la caja del pedalier o tubo frontal" />
-            </div>
-            <div className="campo">
-              <label htmlFor="marca">Marca y modelo *</label>
-              <input id="marca" maxLength={50} value={bici.marcaModelo} onChange={cambiar('marcaModelo')} placeholder="Ej. Trek Marlin 5, Specialized Rockhopper" />
-            </div>
-            <div className="campo">
-              <label htmlFor="color">Color *</label>
-              <select id="color" className="selector" value={bici.color} onChange={cambiar('color')}>
-                <option value="">Seleccione…</option>
-                {COLORES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="campo">
-              <label htmlFor="rasgos">Características distintivas</label>
-              <input id="rasgos" maxLength={100} value={bici.rasgosDistintivos} onChange={cambiar('rasgosDistintivos')} placeholder="Ej. parrilla trasera, luz delantera negra, timbre azul" />
-              <p className="ayuda">{bici.rasgosDistintivos.length} / 100 caracteres</p>
-            </div>
-          </section>
-        ) : (
-          <p className="aviso">
-            <CheckCircle2 size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
-            <span>
-              Bicicleta registrada: {perfil.bicicletas[0].marcaModelo} ({perfil.bicicletas[0].color}).
-              {perfil.enrolado ? ' Ya tienes enrolamiento facial; puedes actualizarlo.' : ' Falta tu enrolamiento facial.'}
-            </span>
-          </p>
-        )}
-
-        {/* Paso 3: Consentimiento y Captura */}
         <section className="ficha" aria-label="Consentimiento y captura" style={{ borderLeft: '4px solid var(--verde-ucsm)' }}>
           <h2>
             <FileCheck size={20} aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
             Consentimiento (Ley N.º 29733)
           </h2>
-          <div style={{ background: 'var(--gris-50)', padding: 16, borderRadius: 8, border: '1px solid var(--gris-200)', marginBottom: 16 }}>
-            <label className="con-boton" style={{ cursor: 'pointer', alignItems: 'flex-start' }}>
-              <input
-                type="checkbox"
-                checked={consentimiento}
-                onChange={(e) => setConsentimiento(e.target.checked)}
-                style={{ marginTop: 4, width: 20, height: 20 }}
-              />
-              <span style={{ fontSize: '0.95rem', lineHeight: 1.45 }}>
-                Autorizo el tratamiento de mi descriptor biométrico facial con la única finalidad de verificar mi identidad al retirar mi bicicleta. No se almacenan fotografías.
-              </span>
-            </label>
-          </div>
-
-          {consentimiento && (
-            // «Luz de pantalla»: durante la captura, la pantalla se pone en blanco alrededor del video para
-            // iluminar el rostro de quien la mira (la web no puede subir el brillo del dispositivo).
-            <div className={`camara${capturando ? ' modo-luz' : ''}`} style={{ marginTop: 16 }}>
-              <div className="camara-marco">
-                <video ref={video} autoPlay muted playsInline aria-label="Visor de cámara en vivo" />
-                <div className="camara-guia-ovalo" aria-hidden="true" />
-              </div>
-
-              {camara === 'cargando' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}>
-                  <RefreshCw size={16} className="girando" aria-hidden="true" style={{ color: 'var(--verde-ucsm)' }} />
-                  <p role="status" style={{ margin: 0, fontWeight: 600 }}>Preparando el reconocimiento facial (más lento solo la primera vez)…</p>
-                </div>
-              )}
-
-              {camara === 'sin-camara' && (
-                <p className="alerta" role="alert">
-                  <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
-                  <span>No se detecta una cámara. Conecte o habilite la cámara e intente nuevamente.</span>
-                </p>
-              )}
-
-              <p className="ayuda" style={{ textAlign: 'center' }}>
-                Un único rostro, centrado, con buena iluminación, sin lentes ni mascarilla.
-              </p>
-
-              <button
-                type="button"
-                className="boton"
-                onClick={capturar}
-                disabled={camara !== 'activa' || capturando}
-                style={{ marginTop: 8 }}
-              >
-                <Camera size={18} aria-hidden="true" />
-                {capturando ? 'Capturando…' : 'Capturar rostro'}
-              </button>
-              {capturando && (
-                <button type="button" className="boton" onClick={() => busqueda.current?.abort()} style={{ marginTop: 8 }}>
-                  Cancelar captura
-                </button>
-              )}
-
-              <p role="status" aria-live="polite" style={{ fontWeight: 600, color: descriptor ? 'var(--verde-ucsm)' : 'var(--gris-600)', marginTop: 8 }}>
-                {capturando
-                  ? `Captura ${estadoCaptura?.captura ?? 1} de 2: ${estadoCaptura?.mensaje ?? 'Ubique su rostro frente a la cámara.'}`
-                  : descriptor
-                    ? '✓ Rostro capturado correctamente. Si desea, puede volver a capturarlo.'
-                    : 'Aún no ha capturado su rostro. Al pulsar «Capturar rostro», mire de frente a la cámara y quédese quieto: la captura es automática.'}
-              </p>
-            </div>
-          )}
+          {bloqueCaptura}
         </section>
 
-        {error && (
-          <p className="alerta" role="alert">
-            <AlertTriangle size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
-            <span>{error}</span>
-          </p>
-        )}
+        {alertaError}
 
         <button
           type="submit"
@@ -358,17 +545,7 @@ export default function RegistroEnrolamiento() {
           <ShieldCheck size={20} aria-hidden="true" />
           {enviando ? 'Guardando…' : 'Completar registro'}
         </button>
-        {!puedeEnviar && !enviando && (
-          <ul className="requisitos" aria-label="Pendiente para completar el registro">
-            {requisitos.map(([texto, listo]) => (
-              <li key={texto} className={listo ? 'listo' : ''}>
-                {listo ? <CheckCircle2 size={16} aria-hidden="true" /> : <span className="pendiente" aria-hidden="true" />}
-                {texto}
-                <span className="sr-only">{listo ? ' (completo)' : ' (pendiente)'}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        {listaRequisitos}
       </form>
     </main>
   );
