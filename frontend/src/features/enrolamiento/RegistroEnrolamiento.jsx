@@ -316,6 +316,7 @@ export default function RegistroEnrolamiento() {
           />
           <span style={{ fontSize: '0.95rem', lineHeight: 1.45 }}>
             Autorizo el tratamiento de mi descriptor biométrico facial con la única finalidad de verificar mi identidad al retirar mi bicicleta. No se almacenan fotografías.
+            {' '}El sticker de mi bicicleta mostrará mi nombre abreviado («{nombre}») y, si el sistema no está disponible, el retiro se verificará con mi DNI en la garita.
           </span>
         </label>
       </div>
