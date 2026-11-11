@@ -9,12 +9,6 @@ vi.mock('../../services/estudianteService', () => ({
   obtenerPerfil: vi.fn(),
 }));
 
-vi.mock('../enrolamiento/sticker', () => ({
-  qrComoDataUrl: vi.fn().mockResolvedValue('data:image/png;base64,AA'),
-  descargarSticker: vi.fn(),
-  nombreAbreviado: () => 'J. Pérez R.',
-}));
-
 // Se desactiva únicamente la regla color-contrast porque jsdom no calcula estilos y daría falsos resultados.
 const axe = configureAxe({
   rules: {

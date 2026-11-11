@@ -5,9 +5,6 @@ import HistorialPage from './HistorialPage';
 import { consultarHistorial, obtenerPerfil } from '../../services/estudianteService';
 
 vi.mock('../../services/estudianteService', () => ({ consultarHistorial: vi.fn(), obtenerPerfil: vi.fn() }));
-vi.mock('../enrolamiento/sticker', () => ({
-  qrComoDataUrl: vi.fn().mockResolvedValue('data:image/png;base64,AA'), descargarSticker: vi.fn(), nombreAbreviado: () => 'J. Pérez R.',
-}));
 
 const pagina = (total, numeroPagina = 1) => ({
   total, numeroPagina, tamanoPagina: 10,
@@ -46,11 +43,28 @@ describe('W5 · Historial personal', () => {
     expect(consultarHistorial).toHaveBeenLastCalledWith(expect.objectContaining({ tipo: 'RETIRO', desde: '2026-10-10', pagina: 1 }));
   });
 
-  it('«Ver mi QR» abre el diálogo con el sticker descargable', async () => {
-    const usuario = userEvent.setup();
+  it('muestra cada bicicleta con su estado y remite a «Mi registro» para los stickers', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue({
+      nombres: 'Juan', apellidos: 'Pérez Ramos',
+      bicicletas: [
+        { codigoQr: 'qr-1', marcaModelo: 'Trek', color: 'Azul', estado: 'FUERA' },
+        { codigoQr: 'qr-2', marcaModelo: 'GT Avalanche', color: 'Negro', estado: 'DENTRO' },
+      ],
+    });
     render(<HistorialPage />);
-    await usuario.click(await screen.findByRole('button', { name: 'Ver mi QR' }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Descargar sticker QR' })).toBeInTheDocument();
+    const lista = await screen.findByRole('region', { name: 'Mis bicicletas' });
+    expect(lista).toHaveTextContent('Trek (Azul)');
+    expect(lista).toHaveTextContent('GT Avalanche (Negro)');
+    expect(lista).toHaveTextContent('FUERA');
+    expect(lista).toHaveTextContent('DENTRO');
+    expect(screen.getByRole('link', { name: 'Mi registro' })).toHaveAttribute('href', '/estudiante/registro');
+    expect(screen.queryByRole('button', { name: 'Ver mi QR' })).not.toBeInTheDocument();
+  });
+
+  it('sin bicicletas, indica que debe registrarla en «Mi registro»', async () => {
+    vi.mocked(obtenerPerfil).mockResolvedValue({ nombres: 'Juan', apellidos: 'Pérez Ramos', bicicletas: [] });
+    render(<HistorialPage />);
+    expect(await screen.findByText(/Aún no registras una bicicleta/)).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Mis bicicletas' })).not.toBeInTheDocument();
   });
 });
