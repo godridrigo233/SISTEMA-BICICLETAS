@@ -77,6 +77,13 @@ describe('W4 · Registro y Enrolamiento (CU-01)', () => {
     expect(screen.getByRole('button', { name: 'Descargar sticker QR' })).toBeInTheDocument();
   });
 
+  it('el consentimiento informa el nombre abreviado del sticker y el retiro con DNI ante una caída', async () => {
+    render(<RegistroEnrolamiento />);
+    const consentimiento = await screen.findByRole('checkbox', { name: /Autorizo el tratamiento/ });
+    expect(consentimiento).toHaveAccessibleName(/nombre abreviado \(«J\. Pérez R\.»\)/);
+    expect(consentimiento).toHaveAccessibleName(/el retiro se verificará con mi DNI en la garita/);
+  });
+
   it('abrevia el nombre del sticker para no exponer el nombre completo', () => {
     expect(nombreAbreviado('Juan Carlos', 'PÉREZ RAMOS')).toBe('J. Pérez R.');
     expect(nombreAbreviado('Ana', 'Quispe')).toBe('A. Quispe');
