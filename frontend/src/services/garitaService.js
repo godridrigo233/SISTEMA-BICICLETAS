@@ -5,6 +5,12 @@ export async function consultarPorQr(codigoQr) {
   return data;
 }
 
+/** D-25: ingresos y retiros que el operador registró hoy, para reconstruir «Últimos movimientos». */
+export async function consultarMovimientosRecientes() {
+  const { data } = await api.get('/garita/movimientos-recientes');
+  return data; // [{ idAuditoria, fechaUtc, tipoEvento, resultado, titular, bicicleta }]
+}
+
 export async function registrarIngreso(idBicicleta, latenciaMs) {
   const { data } = await api.post('/ingresos/registrar', { idBicicleta, latenciaMs });
   return data;

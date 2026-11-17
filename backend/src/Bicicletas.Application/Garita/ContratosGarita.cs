@@ -20,3 +20,15 @@ public sealed record IngresoRequest(
     [Range(0, 60_000)] int? LatenciaMs);
 
 public sealed record MovimientoResponse(string Resultado, string EstadoActualizado);
+
+/// <summary>
+/// Fila de «Últimos movimientos» de W2 (D-25): ingresos y retiros que el operador registró hoy (hora de Perú),
+/// leídos de la auditoría para que no se pierdan al recargar la página o volver a iniciar sesión.
+/// </summary>
+public sealed record MovimientoGaritaResponse(
+    long IdAuditoria,
+    DateTime FechaUtc,
+    string TipoEvento,
+    string Resultado,
+    string Titular,
+    string Bicicleta);
