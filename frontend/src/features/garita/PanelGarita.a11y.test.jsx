@@ -10,6 +10,7 @@ vi.mock('../../services/garitaService', () => ({
   consultarPorQr: vi.fn(),
   registrarIngreso: vi.fn(),
   autorizarRetiro: vi.fn(),
+  consultarMovimientosRecientes: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('../../biometria/extractorFacial', () => ({

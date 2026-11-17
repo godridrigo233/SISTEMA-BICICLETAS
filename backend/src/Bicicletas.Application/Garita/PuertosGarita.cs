@@ -26,6 +26,16 @@ public interface IAuditoriaRepositorio
     Task<int> ContarRechazosConsecutivosAsync(Guid idEstudiante, CancellationToken ct);
 }
 
+/// <summary>Consulta de solo lectura para la tabla «Últimos movimientos» de W2 (D-25).</summary>
+public interface IMovimientosGaritaRepositorio
+{
+    /// <summary>
+    /// Últimos movimientos registrados por el operador desde <paramref name="desdeUtc"/>, del más reciente
+    /// al más antiguo. Excluye los registrados desde la Consola de Contingencias (bitácora física).
+    /// </summary>
+    Task<IReadOnlyList<MovimientoGaritaResponse>> RecientesAsync(Guid idOperador, DateTime desdeUtc, int tomar, CancellationToken ct);
+}
+
 /// <summary>Unidad de trabajo: una transacción por caso de uso (atomicidad ACID).</summary>
 public interface IUnidadDeTrabajo
 {

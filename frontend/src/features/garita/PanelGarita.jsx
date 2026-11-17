@@ -15,7 +15,7 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
-import { consultarPorQr, registrarIngreso } from '../../services/garitaService';
+import { consultarMovimientosRecientes, consultarPorQr, registrarIngreso } from '../../services/garitaService';
 import VerificacionRetiro from './VerificacionRetiro';
 import { prepararBiometria } from '../../biometria/extractorFacial';
 import { useSesion } from '../auth/SesionContext';
@@ -31,7 +31,15 @@ function mensajeGarita(error) {
   return { tipo: 'alerta', texto: data?.detail ?? 'No se pudo completar la operación.' };
 }
 
-const hora = () => new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' });
+const FORMATO_HORA = { hour: '2-digit', minute: '2-digit', timeZone: 'America/Lima' };
+const hora = (fecha = new Date()) => fecha.toLocaleTimeString('es-PE', FORMATO_HORA);
+const MAXIMO_MOVIMIENTOS = 8;
+
+/** Convierte una fila de la auditoría (API) al formato de la tabla. */
+function aFila(m) {
+  const fecha = new Date(/(Z|[+-]\d{2}:\d{2})$/.test(m.fechaUtc) ? m.fechaUtc : `${m.fechaUtc}Z`);
+  return { clave: `a-${m.idAuditoria}`, hora: hora(fecha), titular: m.titular, bici: m.bicicleta, tipo: m.tipoEvento, resultado: m.resultado };
+}
 
 /** W2 · Panel Central de Garita: ingreso por QR (CU-03) y retiro con verificación facial (CU-04). */
 export default function PanelGarita() {
@@ -45,6 +53,29 @@ export default function PanelGarita() {
   const [mensaje, setMensaje] = useState(null);
   const [ocupado, setOcupado] = useState(false);
   const [movimientos, setMovimientos] = useState([]);
+  // D-25: la tabla se reconstruye desde la auditoría; solo se aplica la respuesta de la última consulta.
+  const ultimaConsulta = useRef(0);
+
+  async function recargarMovimientos() {
+    const consulta = ++ultimaConsulta.current;
+    try {
+      const filas = await consultarMovimientosRecientes();
+      if (consulta === ultimaConsulta.current && Array.isArray(filas)) {
+        setMovimientos(filas.slice(0, MAXIMO_MOVIMIENTOS).map(aFila));
+      }
+    } catch {
+      // Sin conexión se conservan las filas de la sesión; la garita sigue operando (contingencia).
+    }
+  }
+
+  function agregarMovimiento(fila) {
+    setMovimientos((m) => [{ clave: `l-${Date.now()}`, hora: hora(), ...fila }, ...m].slice(0, MAXIMO_MOVIMIENTOS));
+    void recargarMovimientos();
+  }
+
+  useEffect(() => {
+    void recargarMovimientos();
+  }, []);
 
   // Precarga en segundo plano al abrir la garita: el primer retiro del turno no espera la descarga
   // ni la compilación de los modelos (RNF-01).
@@ -84,10 +115,7 @@ export default function PanelGarita() {
   }
 
   function terminarRetiro({ tipo, resultado, texto }) {
-    setMovimientos((m) => [
-      { hora: hora(), titular: bicicleta.titular, bici: `${bicicleta.marcaModelo} / ${bicicleta.color}`, tipo: 'RETIRO', resultado },
-      ...m,
-    ].slice(0, 8));
+    agregarMovimiento({ titular: bicicleta.titular, bici: `${bicicleta.marcaModelo} / ${bicicleta.color}`, tipo: 'RETIRO', resultado });
     setMensaje({ tipo, texto });
     reiniciar();
   }
@@ -97,10 +125,7 @@ export default function PanelGarita() {
     setOcupado(true);
     try {
       await registrarIngreso(bicicleta.idBicicleta, latenciaConsulta.current);
-      setMovimientos((m) => [
-        { hora: hora(), titular: bicicleta.titular, bici: `${bicicleta.marcaModelo} / ${bicicleta.color}`, tipo: 'INGRESO', resultado: 'EXITOSO' },
-        ...m,
-      ].slice(0, 8));
+      agregarMovimiento({ titular: bicicleta.titular, bici: `${bicicleta.marcaModelo} / ${bicicleta.color}`, tipo: 'INGRESO', resultado: 'EXITOSO' });
       setMensaje({ tipo: 'exito', texto: `Ingreso registrado: ${bicicleta.titular}. La bicicleta figura DENTRO.` });
       reiniciar();
     } catch (e) {
@@ -245,7 +270,7 @@ export default function PanelGarita() {
           Últimos movimientos en esta garita
         </h2>
         {movimientos.length === 0 ? (
-          <p className="ayuda">Aún no hay movimientos en esta sesión.</p>
+          <p className="ayuda">Aún no hay movimientos registrados hoy por este operador.</p>
         ) : (
           <div className="tabla-desplazable" style={{ margin: '8px 0 0' }}>
             <table className="tabla">
@@ -259,8 +284,8 @@ export default function PanelGarita() {
                 </tr>
               </thead>
               <tbody>
-                {movimientos.map((m, i) => (
-                  <tr key={`${m.hora}-${i}`}>
+                {movimientos.map((m) => (
+                  <tr key={m.clave}>
                     <td><span style={{ fontWeight: 600 }}>{m.hora}</span></td>
                     <td>{m.titular}</td>
                     <td>{m.bici}</td>
