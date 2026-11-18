@@ -67,4 +67,25 @@ describe('W5 · Historial personal', () => {
     expect(await screen.findByText(/Aún no registras una bicicleta/)).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Mis bicicletas' })).not.toBeInTheDocument();
   });
+
+  it('si falla la conexión, lo informa y permite volver a consultar (CU-02 2a)', async () => {
+    vi.mocked(consultarHistorial).mockRejectedValueOnce(new Error('Network Error'));
+    const usuario = userEvent.setup();
+    render(<HistorialPage />);
+    expect(await screen.findByText('Sin conexión con el servidor. Intente nuevamente.')).toBeInTheDocument();
+
+    await usuario.selectOptions(screen.getByLabelText('Tipo'), 'RETIRO');
+    await usuario.click(screen.getByRole('button', { name: 'Filtrar' }));
+    expect(await screen.findByText('✗ Denegado')).toBeInTheDocument();
+    expect(screen.queryByText('Sin conexión con el servidor. Intente nuevamente.')).not.toBeInTheDocument();
+  });
+
+  it('sin movimientos, muestra el estado de su bicicleta y el aviso de que no hay registros (CU-02 4a)', async () => {
+    vi.mocked(consultarHistorial).mockResolvedValue({ total: 0, numeroPagina: 1, tamanoPagina: 10, elementos: [] });
+    render(<HistorialPage />);
+    expect(await screen.findByText('No hay movimientos para los filtros seleccionados.')).toBeInTheDocument();
+    const lista = await screen.findByRole('region', { name: 'Mis bicicletas' });
+    expect(lista).toHaveTextContent('Trek (Azul)');
+    expect(lista).toHaveTextContent('FUERA');
+  });
 });

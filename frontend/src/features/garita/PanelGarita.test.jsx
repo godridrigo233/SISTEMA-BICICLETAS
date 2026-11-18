@@ -155,4 +155,16 @@ describe('W2 · Panel de Garita — ingreso por QR (CU-03)', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Registrar ingreso' }));
     expect(await screen.findByRole('cell', { name: 'INGRESO' })).toBeInTheDocument();
   });
+
+  it('con el QR ilegible, el código digitado identifica la bicicleta y la ficha muestra el número de marco para cotejarlo con el chasis (CU-03 2a)', async () => {
+    vi.mocked(consultarPorQr).mockResolvedValue(bici('FUERA'));
+    const usuario = userEvent.setup();
+    render(<PanelGarita />);
+
+    // El vigilante digita el código impreso en el sticker (o el que el estudiante muestra en «Mi registro») y pulsa Enter.
+    await usuario.type(screen.getByLabelText('Código QR de la bicicleta'), `${QR}{Enter}`);
+    expect(consultarPorQr).toHaveBeenCalledWith(QR);
+    expect(await screen.findByText('N.º de marco')).toBeInTheDocument();
+    expect(screen.getByText('SEED-MARCO-0001')).toBeInTheDocument();
+  });
 });
