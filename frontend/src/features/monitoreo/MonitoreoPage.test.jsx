@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MonitoreoPage from './MonitoreoPage';
@@ -48,5 +48,26 @@ describe('W6 · Monitoreo y Reportes', () => {
     const seccion = await screen.findByRole('region', { name: 'Alertas de revisión biométrica' });
     expect(seccion).toHaveTextContent('JUAN PEREZ');
     expect(seccion).toHaveTextContent('2020123456');
+  });
+
+  it('sin eventos para los filtros, lo informa y no permite exportar un reporte vacío (CU-05 3a)', async () => {
+    vi.mocked(consultarEventos).mockResolvedValue({ total: 0, numeroPagina: 1, tamanoPagina: 20, elementos: [] });
+    render(<MonitoreoPage />);
+    expect(await screen.findByText('No hay eventos para los filtros seleccionados.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeDisabled();
+  });
+
+  it('si falla la exportación del reporte, lo informa y permite volver a intentarlo (CU-05 6a)', async () => {
+    vi.mocked(exportarCsv).mockRejectedValueOnce({ response: { status: 500, data: {} } });
+    const usuario = userEvent.setup();
+    render(<MonitoreoPage />);
+    const exportar = await screen.findByRole('button', { name: 'Exportar CSV' });
+    await waitFor(() => expect(exportar).toBeEnabled());
+
+    await usuario.click(exportar);
+    expect(await screen.findByText('No se pudo exportar el CSV.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeEnabled();
+    await usuario.click(screen.getByRole('button', { name: 'Exportar CSV' }));
+    expect(exportarCsv).toHaveBeenCalledTimes(2);
   });
 });

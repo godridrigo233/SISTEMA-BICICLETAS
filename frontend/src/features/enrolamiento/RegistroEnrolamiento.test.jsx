@@ -88,6 +88,22 @@ describe('W4 · Registro y Enrolamiento (CU-01)', () => {
     expect(nombreAbreviado('Juan Carlos', 'PÉREZ RAMOS')).toBe('J. Pérez R.');
     expect(nombreAbreviado('Ana', 'Quispe')).toBe('A. Quispe');
   });
+
+  it('si no hay cámara, lo informa, no permite capturar y vuelve a intentarlo al aceptar de nuevo el consentimiento (CU-01 5a)', async () => {
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValueOnce(new Error('NotFoundError'));
+    const usuario = userEvent.setup();
+    render(<RegistroEnrolamiento />);
+    await screen.findByRole('button', { name: 'Completar registro' });
+
+    await usuario.click(screen.getByRole('checkbox'));
+    expect(await screen.findByText(/No se detecta una cámara/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Capturar rostro' })).toBeDisabled();
+
+    await usuario.click(screen.getByRole('checkbox'));
+    await usuario.click(screen.getByRole('checkbox'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Capturar rostro' })).toBeEnabled());
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('W4 · Captura automática del enrolamiento', () => {

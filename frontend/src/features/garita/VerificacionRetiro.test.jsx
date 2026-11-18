@@ -118,6 +118,30 @@ describe('W2 · Verificación facial del retiro (CU-04)', () => {
     await usuario.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(alCancelar).toHaveBeenCalledOnce();
   });
+
+  it('ante un error técnico de la verificación lo informa, no da por terminado el retiro y permite reintentar (CU-04 5b)', async () => {
+    vi.mocked(autorizarRetiro).mockRejectedValueOnce({ response: { status: 500, data: { detail: 'Error interno al verificar.' } } });
+    const usuario = userEvent.setup();
+    const alTerminar = montar();
+
+    await usuario.click(await screen.findByRole('button', { name: 'Capturar y verificar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Error interno al verificar.');
+    expect(alTerminar).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Capturar y verificar' })).toBeEnabled();
+  });
+
+  it('sin conexión con el servidor indica aplicar el protocolo de contingencia y no da por terminado el retiro (CU-04 5c)', async () => {
+    vi.mocked(autorizarRetiro).mockRejectedValueOnce(new Error('Network Error'));
+    const usuario = userEvent.setup();
+    const alTerminar = montar();
+
+    await usuario.click(await screen.findByRole('button', { name: 'Capturar y verificar' }));
+    const aviso = await screen.findByRole('alert');
+    expect(aviso).toHaveTextContent('protocolo de contingencia');
+    expect(aviso).toHaveTextContent('DNI');
+    expect(aviso).toHaveTextContent('Consola de Contingencias');
+    expect(alTerminar).not.toHaveBeenCalled();
+  });
 });
 
 describe('W2 · Captura automática del retiro', () => {

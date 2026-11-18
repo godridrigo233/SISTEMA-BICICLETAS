@@ -26,6 +26,8 @@ import { crearAjusteExposicion, mantenerPantallaEncendida } from '../../biometri
  */
 const CLAVE_LUZ = 'garita.luzPantalla';
 
+const SIN_CONEXION = 'Sin conexión con el servidor. Aplique el protocolo de contingencia: verifique el DNI del estudiante y anótelo en la bitácora; el retiro se regularizará en la Consola de Contingencias.';
+
 export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, permiteManual = false }) {
   const video = useRef(null);
   const seccion = useRef(null);
@@ -146,7 +148,8 @@ export default function VerificacionRetiro({ bicicleta, alTerminar, alCancelar, 
         setDerivable(true);
       }
     } catch (error) {
-      mostrarError(error);
+      // CU-04 5c: sin respuesta del servidor, el vigilante aplica el protocolo de contingencia (CU-06).
+      mostrarError(error?.response ? error : { message: SIN_CONEXION });
     }
   }
 
