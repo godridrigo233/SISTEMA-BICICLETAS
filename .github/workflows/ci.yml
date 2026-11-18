@@ -134,7 +134,7 @@ jobs:
       - name: Ejecutar pruebas xUnit con cobertura
         run: >-
           dotnet test backend/BicicletasUcsm.sln --no-build -c Release
-          --logger trx --results-directory backend/TestResults
+          --logger trx --logger "console;verbosity=normal" --results-directory backend/TestResults
           --collect:"XPlat Code Coverage"
           -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
 

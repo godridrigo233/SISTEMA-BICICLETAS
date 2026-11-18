@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest",
-    "test:ci": "vitest run --coverage"
+    "test:ci": "vitest run --coverage --reporter=verbose"
   },
   "dependencies": {
     "@vladmandic/face-api": "1.7.15",
