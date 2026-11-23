@@ -13,6 +13,7 @@ import {
   UserPlus,
   Users,
   UserX,
+  XCircle,
 } from 'lucide-react';
 import Confirmacion from '../../componentes/Confirmacion';
 import Paginador from '../../componentes/Paginador';

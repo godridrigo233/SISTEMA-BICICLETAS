@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Bike,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  HelpCircle,
   History,
+  LifeBuoy,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -50,6 +52,7 @@ const TITULOS_RUTA = {
   '/admin/usuarios': 'Gestión de Usuarios y Roles',
   '/estudiante/historial': 'Mi Historial de Movimientos',
   '/estudiante/registro': 'Registro y Enrolamiento',
+  '/ayuda': 'Ayuda y Soporte',
 };
 
 const INICIALES_ROL = {
@@ -129,6 +132,7 @@ export default function Plantilla() {
           </div>
           <div className="barra-derecha">
             <IndicadorConexion conectado={conectado} siempre />
+            <AccesosAyuda pantalla={tituloPantalla} enGarita />
             <div className="usuario-dropdown-contenedor" ref={refMenuUsuario}>
               <button
                 type="button"
@@ -261,6 +265,7 @@ export default function Plantilla() {
 
           <div className="barra-derecha">
             <IndicadorConexion conectado={conectado} />
+            <AccesosAyuda pantalla={tituloPantalla} />
             {/* Menú de Usuario Desplegable */}
             <div className="usuario-dropdown-contenedor" ref={refMenuUsuario}>
               <button
@@ -343,5 +348,25 @@ function IndicadorConexion({ conectado, siempre = false }) {
       <span className="punto" aria-hidden="true" />
       {conectado ? 'En línea' : 'Sin conexión: use la plantilla de contingencia'}
     </span>
+  );
+}
+
+/**
+ * Accesos de Ayuda y Soporte en la barra superior de todas las pantallas (Nielsen H10; ITIL 4: punto de entrada de
+ * incidencias). Soporte lleva la pantalla de origen para que el reporte la incluya.
+ */
+function AccesosAyuda({ pantalla, enGarita = false }) {
+  const estilo = enGarita ? { borderColor: 'rgba(255,255,255,0.5)', color: '#ffffff', background: 'transparent' } : undefined;
+  return (
+    <>
+      <Link className="boton" to="/ayuda" state={{ desde: pantalla }} style={estilo} title="Guía rápida de su rol">
+        <HelpCircle size={16} aria-hidden="true" />
+        Ayuda
+      </Link>
+      <Link className="boton" to="/ayuda#soporte" state={{ desde: pantalla }} style={estilo} title="Reportar un problema">
+        <LifeBuoy size={16} aria-hidden="true" />
+        Soporte
+      </Link>
+    </>
   );
 }
