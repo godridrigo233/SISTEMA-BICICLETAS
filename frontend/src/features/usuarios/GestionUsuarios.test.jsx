@@ -61,4 +61,16 @@ describe('W7 · Gestión de Usuarios y Roles', () => {
     expect(restablecerPassword).toHaveBeenCalledWith('u1');
     expect(await screen.findByDisplayValue('Zz9yXx8wVv7u')).toBeInTheDocument();
   });
+  it('D-27: si la API rechaza inactivar la propia cuenta, muestra el motivo y la pantalla sigue operativa', async () => {
+    vi.mocked(cambiarEstado).mockRejectedValue({ response: { status: 409, data: { detail: 'No puede inactivar su propia cuenta.' } } });
+    const usuario = userEvent.setup();
+    render(<GestionUsuarios />);
+    await usuario.click(await screen.findByLabelText('Cuenta vig@ucsm.edu.pe activa'));
+    await usuario.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Inactivar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No puede inactivar su propia cuenta.');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Gestión de Usuarios y Roles' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Cuenta vig@ucsm.edu.pe activa')).toBeChecked();
+  });
 });
