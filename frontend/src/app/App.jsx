@@ -16,6 +16,7 @@ const HistorialPage = lazy(() => import('../features/historial/HistorialPage'));
 const MonitoreoPage = lazy(() => import('../features/monitoreo/MonitoreoPage'));
 const ConsolaContingencias = lazy(() => import('../features/contingencias/ConsolaContingencias'));
 const GestionUsuarios = lazy(() => import('../features/usuarios/GestionUsuarios'));
+const AyudaPage = lazy(() => import('../features/ayuda/AyudaPage'));
 
 function CargandoPantalla() {
   return (
@@ -65,6 +66,9 @@ export default function App() {
               </Route>
               <Route element={<ProtectedRoute rolesPermitidos={[ROL.ADMINISTRADOR]} />}>
                 <Route path="/admin/usuarios" element={<GestionUsuarios />} />
+              </Route>
+              <Route element={<ProtectedRoute rolesPermitidos={[ROL.ESTUDIANTE, ROL.GARITERO, ROL.SUPERVISOR, ROL.ADMINISTRADOR]} />}>
+                <Route path="/ayuda" element={<AyudaPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/login" replace />} />

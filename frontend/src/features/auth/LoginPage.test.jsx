@@ -97,4 +97,10 @@ describe('W1 · LoginPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Credenciales inválidas.');
   });
+  it('«Contacte a Soporte» abre un correo a la Dirección de Seguridad Institucional', () => {
+    montar();
+    const enlace = screen.getByRole('link', { name: '¿Problemas para ingresar? Contacte a Soporte' });
+    expect(enlace.getAttribute('href').startsWith('mailto:oficina.seguridad@ucsm.edu.pe?subject=')).toBe(true);
+    expect(decodeURIComponent(enlace.getAttribute('href'))).toContain('Pantalla: Inicio de sesión');
+  });
 });

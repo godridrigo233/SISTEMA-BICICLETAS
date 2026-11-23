@@ -7,6 +7,7 @@ import { mensajeDeError } from '../../services/apiClient';
 import { iniciarSesion } from '../../services/authService';
 import { iniciarPrecalentamiento } from '../../services/precalentador';
 import { useSesion } from './SesionContext';
+import { enlaceSoporte } from '../../app/soporte';
 
 // Personal: @ucsm.edu.pe · Estudiantes: @estudiante.ucsm.edu.pe
 const DOMINIO = /^[^\s@]+@(estudiante\.)?ucsm\.edu\.pe$/i;
@@ -176,7 +177,7 @@ export default function LoginPage() {
               </p>
             )}
 
-            <a className="enlace" href="mailto:soporte.bicicletas@ucsm.edu.pe" style={{ textAlign: 'center', fontSize: '0.875rem', marginTop: 4 }}>
+            <a className="enlace" href={enlaceSoporte({ pantalla: 'Inicio de sesión' })} style={{ textAlign: 'center', fontSize: '0.875rem', marginTop: 4 }}>
               ¿Problemas para ingresar? Contacte a Soporte
             </a>
           </div>

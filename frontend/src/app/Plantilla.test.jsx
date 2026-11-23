@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import Plantilla from './Plantilla';
@@ -11,7 +11,10 @@ function montar(idRol) {
   vi.mocked(useSesion).mockReturnValue({ sesion: { idRol }, cerrarSesion: vi.fn() });
   render(<MemoryRouter><Plantilla /></MemoryRouter>);
 }
-const enlaces = () => screen.queryAllByRole('link').map((a) => a.textContent);
+const enlaces = () => {
+  const menu = screen.queryByRole('navigation', { name: 'Menú principal' });
+  return menu ? within(menu).queryAllByRole('link').map((a) => a.textContent) : [];
+};
 
 describe('Menú por rol (RBAC en la navegación)', () => {
   it('el Administrador ve Monitoreo, Usuarios, Garita y Contingencias', () => {
@@ -49,5 +52,13 @@ describe('Estado de la conexión con el servidor (Nielsen H1)', () => {
     act(() => marcarConexion(false));
     expect(screen.getByText('Sin conexión: use la plantilla de contingencia')).toBeInTheDocument();
     act(() => marcarConexion(true));
+  });
+});
+
+describe('Ayuda y Soporte en todas las pantallas (Nielsen H10; ITIL 4)', () => {
+  it.each([[1], [2], [3], [4]])('el rol %i ve los accesos «Ayuda» y «Soporte»', (idRol) => {
+    montar(idRol);
+    expect(screen.getByRole('link', { name: 'Ayuda' })).toHaveAttribute('href', '/ayuda');
+    expect(screen.getByRole('link', { name: 'Soporte' })).toHaveAttribute('href', '/ayuda#soporte');
   });
 });
